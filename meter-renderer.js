@@ -2549,6 +2549,13 @@
   color: #f59e0b;
 }
 
+.kv-cache-drop-alert[hidden],
+.ctx-breakdown-files[hidden],
+.cmd-subcat-bar[hidden],
+.cmd-hub-toast[hidden] {
+  display: none !important;
+}
+
 .ctx-breakdown-bar {
   display: flex;
   height: 7px;
@@ -2648,10 +2655,12 @@
   font-size: 10.5px;
   color: var(--ag-text-muted);
   line-height: 1.4;
+  flex-shrink: 0;
 }
 
 .cmd-search-wrap {
   display: flex;
+  flex-shrink: 0;
 }
 
 .cmd-search-input {
@@ -2674,6 +2683,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+  flex-shrink: 0;
 }
 
 .cmd-tab-btn,
@@ -2700,8 +2710,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  max-height: 54px;
+  max-height: 60px;
   overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .cmd-subcat-pill {
@@ -2714,6 +2725,7 @@
   border-radius: 6px;
   font-size: 11px;
   line-height: 1.4;
+  flex-shrink: 0;
 }
 
 .cmd-hub-toast.is-ok {
@@ -2728,15 +2740,27 @@
   color: #ef4444;
 }
 
+@keyframes agCmdRefreshSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+#btn-refresh-commands.is-spinning {
+  animation: agCmdRefreshSpin 0.65s linear infinite;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
 .cmd-hub-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
   overflow-y: auto;
-  flex: 1;
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
   min-height: 180px;
-  max-height: 390px;
-  padding-right: 2px;
+  max-height: min(460px, calc(100vh - 280px));
+  padding-right: 4px;
 }
 
 .cmd-empty-state {
@@ -2744,9 +2768,12 @@
   text-align: center;
   font-size: 11.5px;
   color: var(--ag-text-muted);
+  flex-shrink: 0;
 }
 
 .cmd-card {
+  flex: 0 0 auto;
+  flex-shrink: 0;
   border: 1px solid var(--ag-border-card);
   background: var(--ag-bg-card);
   border-radius: 8px;
@@ -10913,6 +10940,42 @@ function formatPeriodCalendarLabel(currentPeriod) {
     return 'ring-only';
   }
 
+  function measureComposerLeftIntrinsicWidth(leftEl, footerWidth) {
+    if (!leftEl?.getBoundingClientRect) return 180;
+    const walk = (node, depth = 0) => {
+      if (!node?.getBoundingClientRect || depth > 5) return 0;
+      const rect = node.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return 0;
+      if (node.tagName === 'BUTTON' || node.getAttribute?.('role') === 'button') {
+        return rect.width;
+      }
+      const style = typeof window !== 'undefined' && typeof window.getComputedStyle === 'function'
+        ? window.getComputedStyle(node)
+        : null;
+      const isGrow = Boolean(style && parseFloat(style.flexGrow || '0') > 0);
+      const visibleChildren = Array.from(node.children || []).filter(c => {
+        const r = c.getBoundingClientRect?.();
+        return r && r.width > 0 && r.height > 0;
+      });
+      if (!isGrow && (depth > 0 || visibleChildren.length === 0)) {
+        return rect.width;
+      }
+      if (visibleChildren.length === 0) {
+        const hasText = String(node.textContent || '').trim().length > 0;
+        return hasText ? Math.min(rect.width, 180) : 0;
+      }
+      let sum = 0;
+      for (const ch of visibleChildren) {
+        sum += walk(ch, depth + 1);
+      }
+      const gapPx = visibleChildren.length > 1 ? (visibleChildren.length - 1) * 6 : 0;
+      return Math.min(rect.width, sum + gapPx);
+    };
+    const measured = walk(leftEl, 0);
+    if (measured <= 0) return 180;
+    return Math.min(measured, Math.max(220, Math.round(footerWidth * 0.45)));
+  }
+
   function measureAvailableWidth(force = false) {
     try {
       const now = Date.now();
@@ -10930,7 +10993,10 @@ function formatPeriodCalendarLabel(currentPeriod) {
       if (composer?.footer?.getBoundingClientRect) {
         const fRect = composer.footer.getBoundingClientRect();
         if (fRect.width > 0) {
-          const leftW = composer.footer.firstElementChild?.getBoundingClientRect?.().width || 180;
+          const leftEl = composer.footer.firstElementChild;
+          const leftW = (leftEl && leftEl !== composer.rightGroup)
+            ? measureComposerLeftIntrinsicWidth(leftEl, fRect.width)
+            : 180;
           let rightBtnsW = 0;
           for (const child of (composer.rightGroup?.children || [])) {
             if (child !== host && child.getBoundingClientRect) {
@@ -24719,26 +24785,28 @@ var cumLockedKey = null;
       wrap.innerHTML = pills;
     }
 
-    function renderList() {
+    function renderList(resetScroll = false) {
       const listEl = el('cmd-hub-list');
       const metaEl = el('cmd-hub-stats');
       if (!listEl) return;
 
-      const stats = payload?.stats;
-      if (metaEl && stats) {
-        metaEl.textContent = `共 ${stats.total} 项（官方 ${stats.builtinCount} · 插件/全局 ${stats.installedCount} · agent_skills ${stats.agentSkillsCount}）· 原生挂载 ${stats.nativePinnedCount} 项 (~${stats.nativePinnedTokens} tok)`;
-      }
-
       renderSubCategories();
       const filtered = filterItems();
+      const stats = payload?.stats;
+      if (metaEl && stats) {
+        metaEl.textContent = `当前 ${filtered.length} / 共 ${stats.total} 项（官方 ${stats.builtinCount} · 插件/全局 ${stats.installedCount} · agent_skills ${stats.agentSkillsCount}）· 原生挂载 ${stats.nativePinnedCount} 项 (~${stats.nativePinnedTokens} tok)`;
+      }
+
+      if (resetScroll) listEl.scrollTop = 0;
+
       if (!filtered.length) {
         listEl.innerHTML = `<div class="cmd-empty-state">${searchQuery ? '未找到匹配的指令或技能，请尝试更换关键词。' : '当前分类暂无条目。'}</div>`;
         return;
       }
 
-      const maxRender = searchQuery ? 80 : 120;
+      const maxRender = 300;
       const visible = filtered.slice(0, maxRender);
-      listEl.innerHTML = visible.map(item => {
+      const htmlCards = visible.map(item => {
         const isExp = expandedId === item.id;
         const toneClass = item.costTone === 'good' ? 'pill-ok' : (item.costTone === 'warn' ? 'pill-warn' : (item.costTone === 'info' ? 'pill-info' : 'pill-muted'));
         const starChar = item.isFavorite ? '★' : '☆';
@@ -24788,6 +24856,10 @@ var cumLockedKey = null;
           </div>
         `;
       }).join('');
+      const overflowNote = filtered.length > maxRender
+        ? `<div class="cmd-empty-state">仅展示前 ${maxRender} 项（共 ${filtered.length} 项匹配），可输入关键词进一步筛选。</div>`
+        : '';
+      listEl.innerHTML = htmlCards + overflowNote;
     }
 
     async function refresh(force = false) {
@@ -24798,20 +24870,35 @@ var cumLockedKey = null;
       }
       loading = true;
       const listEl = el('cmd-hub-list');
+      const refreshBtn = el('btn-refresh-commands');
+      if (refreshBtn) {
+        refreshBtn.classList.add('is-spinning');
+        refreshBtn.disabled = true;
+      }
       if (listEl && !payload) listEl.innerHTML = '<div class="cmd-empty-state">正在扫描内置指令、已装插件与 E:\\agent_skills 技能库…</div>';
       try {
         const res = await callCommandsApi('list', { force });
         if (res && res.ok) {
           payload = res;
           loaded = true;
-          renderList();
+          renderList(force);
+          if (force && res.stats) {
+            showToast(`已重新扫描本地指令与技能：共 ${res.stats.total} 项（agent_skills ${res.stats.agentSkillsCount}）`);
+          }
         } else {
-          if (listEl) listEl.innerHTML = `<div class="cmd-empty-state">加载失败：${escapeHtmlCmd(res?.error || '未知错误')}</div>`;
+          const errMsg = res?.error || '未知错误';
+          if (listEl && !payload) listEl.innerHTML = `<div class="cmd-empty-state">加载失败：${escapeHtmlCmd(errMsg)}</div>`;
+          if (force) showToast(`刷新失败：${errMsg}`, true);
         }
       } catch (e) {
-        if (listEl) listEl.innerHTML = `<div class="cmd-empty-state">加载异常：${escapeHtmlCmd(e.message)}</div>`;
+        if (listEl && !payload) listEl.innerHTML = `<div class="cmd-empty-state">加载异常：${escapeHtmlCmd(e.message)}</div>`;
+        if (force) showToast(`刷新异常：${e.message}`, true);
       } finally {
         loading = false;
+        if (refreshBtn) {
+          refreshBtn.classList.remove('is-spinning');
+          refreshBtn.disabled = false;
+        }
       }
     }
 
@@ -24901,14 +24988,14 @@ var cumLockedKey = null;
         activeTab = btn.getAttribute('data-cmd-tab') || 'favorites';
         activeSubCat = 'ALL';
         tabsWrap.querySelectorAll('[data-cmd-tab]').forEach(b => b.classList.toggle('active', b === btn));
-        renderList();
+        renderList(true);
       });
 
       el('cmd-subcat-bar')?.addEventListener('click', (e) => {
         const btn = e.target?.closest?.('[data-subcat]');
         if (!btn) return;
         activeSubCat = btn.getAttribute('data-subcat') || 'ALL';
-        renderList();
+        renderList(true);
       });
 
       el('cmd-hub-list')?.addEventListener('click', (e) => { void handleListClick(e); });

@@ -195,26 +195,28 @@
       wrap.innerHTML = pills;
     }
 
-    function renderList() {
+    function renderList(resetScroll = false) {
       const listEl = el('cmd-hub-list');
       const metaEl = el('cmd-hub-stats');
       if (!listEl) return;
 
-      const stats = payload?.stats;
-      if (metaEl && stats) {
-        metaEl.textContent = `共 ${stats.total} 项（官方 ${stats.builtinCount} · 插件/全局 ${stats.installedCount} · agent_skills ${stats.agentSkillsCount}）· 原生挂载 ${stats.nativePinnedCount} 项 (~${stats.nativePinnedTokens} tok)`;
-      }
-
       renderSubCategories();
       const filtered = filterItems();
+      const stats = payload?.stats;
+      if (metaEl && stats) {
+        metaEl.textContent = `当前 ${filtered.length} / 共 ${stats.total} 项（官方 ${stats.builtinCount} · 插件/全局 ${stats.installedCount} · agent_skills ${stats.agentSkillsCount}）· 原生挂载 ${stats.nativePinnedCount} 项 (~${stats.nativePinnedTokens} tok)`;
+      }
+
+      if (resetScroll) listEl.scrollTop = 0;
+
       if (!filtered.length) {
         listEl.innerHTML = `<div class="cmd-empty-state">${searchQuery ? '未找到匹配的指令或技能，请尝试更换关键词。' : '当前分类暂无条目。'}</div>`;
         return;
       }
 
-      const maxRender = searchQuery ? 80 : 120;
+      const maxRender = 300;
       const visible = filtered.slice(0, maxRender);
-      listEl.innerHTML = visible.map(item => {
+      const htmlCards = visible.map(item => {
         const isExp = expandedId === item.id;
         const toneClass = item.costTone === 'good' ? 'pill-ok' : (item.costTone === 'warn' ? 'pill-warn' : (item.costTone === 'info' ? 'pill-info' : 'pill-muted'));
         const starChar = item.isFavorite ? '★' : '☆';
@@ -264,6 +266,10 @@
           </div>
         `;
       }).join('');
+      const overflowNote = filtered.length > maxRender
+        ? `<div class="cmd-empty-state">仅展示前 ${maxRender} 项（共 ${filtered.length} 项匹配），可输入关键词进一步筛选。</div>`
+        : '';
+      listEl.innerHTML = htmlCards + overflowNote;
     }
 
     async function refresh(force = false) {
@@ -274,20 +280,35 @@
       }
       loading = true;
       const listEl = el('cmd-hub-list');
+      const refreshBtn = el('btn-refresh-commands');
+      if (refreshBtn) {
+        refreshBtn.classList.add('is-spinning');
+        refreshBtn.disabled = true;
+      }
       if (listEl && !payload) listEl.innerHTML = '<div class="cmd-empty-state">正在扫描内置指令、已装插件与 E:\\agent_skills 技能库…</div>';
       try {
         const res = await callCommandsApi('list', { force });
         if (res && res.ok) {
           payload = res;
           loaded = true;
-          renderList();
+          renderList(force);
+          if (force && res.stats) {
+            showToast(`已重新扫描本地指令与技能：共 ${res.stats.total} 项（agent_skills ${res.stats.agentSkillsCount}）`);
+          }
         } else {
-          if (listEl) listEl.innerHTML = `<div class="cmd-empty-state">加载失败：${escapeHtmlCmd(res?.error || '未知错误')}</div>`;
+          const errMsg = res?.error || '未知错误';
+          if (listEl && !payload) listEl.innerHTML = `<div class="cmd-empty-state">加载失败：${escapeHtmlCmd(errMsg)}</div>`;
+          if (force) showToast(`刷新失败：${errMsg}`, true);
         }
       } catch (e) {
-        if (listEl) listEl.innerHTML = `<div class="cmd-empty-state">加载异常：${escapeHtmlCmd(e.message)}</div>`;
+        if (listEl && !payload) listEl.innerHTML = `<div class="cmd-empty-state">加载异常：${escapeHtmlCmd(e.message)}</div>`;
+        if (force) showToast(`刷新异常：${e.message}`, true);
       } finally {
         loading = false;
+        if (refreshBtn) {
+          refreshBtn.classList.remove('is-spinning');
+          refreshBtn.disabled = false;
+        }
       }
     }
 
@@ -377,14 +398,14 @@
         activeTab = btn.getAttribute('data-cmd-tab') || 'favorites';
         activeSubCat = 'ALL';
         tabsWrap.querySelectorAll('[data-cmd-tab]').forEach(b => b.classList.toggle('active', b === btn));
-        renderList();
+        renderList(true);
       });
 
       el('cmd-subcat-bar')?.addEventListener('click', (e) => {
         const btn = e.target?.closest?.('[data-subcat]');
         if (!btn) return;
         activeSubCat = btn.getAttribute('data-subcat') || 'ALL';
-        renderList();
+        renderList(true);
       });
 
       el('cmd-hub-list')?.addEventListener('click', (e) => { void handleListClick(e); });

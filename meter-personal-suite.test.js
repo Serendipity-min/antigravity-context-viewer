@@ -235,6 +235,12 @@ describe('Personal Suite Backend Modules', () => {
       ]) {
         assert.ok(!bundle.includes(removed), `Expected renderer bundle NOT to include removed UI ${removed}`);
       }
+
+      // Regression: .cmd-card must never shrink to 0px inside flex .cmd-hub-list,
+      // and .cmd-subcat-bar[hidden] must override display:flex.
+      assert.match(bundle, /\.cmd-card\s*\{[^}]*flex-shrink:\s*0/, 'Expected .cmd-card to include flex-shrink: 0');
+      assert.match(bundle, /\.cmd-subcat-bar\[hidden\][\s\S]*?display:\s*none\s*!important/, 'Expected .cmd-subcat-bar[hidden] to force display: none !important');
+      assert.ok(bundle.includes('measureComposerLeftIntrinsicWidth'), 'Expected flex-grow-safe composer width measurement');
     });
   });
 });

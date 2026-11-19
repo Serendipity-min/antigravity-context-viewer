@@ -863,6 +863,42 @@
     return 'ring-only';
   }
 
+  function measureComposerLeftIntrinsicWidth(leftEl, footerWidth) {
+    if (!leftEl?.getBoundingClientRect) return 180;
+    const walk = (node, depth = 0) => {
+      if (!node?.getBoundingClientRect || depth > 5) return 0;
+      const rect = node.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return 0;
+      if (node.tagName === 'BUTTON' || node.getAttribute?.('role') === 'button') {
+        return rect.width;
+      }
+      const style = typeof window !== 'undefined' && typeof window.getComputedStyle === 'function'
+        ? window.getComputedStyle(node)
+        : null;
+      const isGrow = Boolean(style && parseFloat(style.flexGrow || '0') > 0);
+      const visibleChildren = Array.from(node.children || []).filter(c => {
+        const r = c.getBoundingClientRect?.();
+        return r && r.width > 0 && r.height > 0;
+      });
+      if (!isGrow && (depth > 0 || visibleChildren.length === 0)) {
+        return rect.width;
+      }
+      if (visibleChildren.length === 0) {
+        const hasText = String(node.textContent || '').trim().length > 0;
+        return hasText ? Math.min(rect.width, 180) : 0;
+      }
+      let sum = 0;
+      for (const ch of visibleChildren) {
+        sum += walk(ch, depth + 1);
+      }
+      const gapPx = visibleChildren.length > 1 ? (visibleChildren.length - 1) * 6 : 0;
+      return Math.min(rect.width, sum + gapPx);
+    };
+    const measured = walk(leftEl, 0);
+    if (measured <= 0) return 180;
+    return Math.min(measured, Math.max(220, Math.round(footerWidth * 0.45)));
+  }
+
   function measureAvailableWidth(force = false) {
     try {
       const now = Date.now();
@@ -880,7 +916,10 @@
       if (composer?.footer?.getBoundingClientRect) {
         const fRect = composer.footer.getBoundingClientRect();
         if (fRect.width > 0) {
-          const leftW = composer.footer.firstElementChild?.getBoundingClientRect?.().width || 180;
+          const leftEl = composer.footer.firstElementChild;
+          const leftW = (leftEl && leftEl !== composer.rightGroup)
+            ? measureComposerLeftIntrinsicWidth(leftEl, fRect.width)
+            : 180;
           let rightBtnsW = 0;
           for (const child of (composer.rightGroup?.children || [])) {
             if (child !== host && child.getBoundingClientRect) {
