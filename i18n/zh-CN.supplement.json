@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "description": "Antigravity Desktop v2.33.0+ supplementary Chinese localization overrides and missing UI labels",
+    "version": "1.0.0"
+  },
+  "exact": {
+    "Remote": "远程",
+    "Powered by Gemini Live": "由 Gemini Live 提供支持",
+    "The voice used in Voice mode. Powered by Gemini Live.": "语音模式下使用的声音，由 Gemini Live 提供支持。",
+    "Input device for voice mode and dictation.": "语音模式与语音听写的输入设备。",
+    "Interface Layout": "界面布局",
+    "Knowledge Work": "知识工作",
+    "Software Engineering": "软件工程",
+    "This Computer": "本机",
+    "Voice mode": "语音模式",
+    "System default": "系统默认",
+    "Not set": "未设置"
+  },
+  "patterns": [
+    {
+      "regex": "^Powered by (.+)$",
+      "replacement": "由 $1 提供支持"
+    }
+  ]
+}

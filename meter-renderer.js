@@ -1,6 +1,6 @@
 (function () {
-  const METER_VERSION = '0.8.8';
-  const METER_DISPLAY_VERSION = '0.8.8 α';
+  const METER_VERSION = '0.9.0';
+  const METER_DISPLAY_VERSION = 'v0.9.0 Personal';
 
   'use strict';
   if ((location.protocol !== 'https:' && location.protocol !== 'http:') || location.hostname !== '127.0.0.1') return;
@@ -542,9 +542,9 @@
     }
 
     /* 单元 4: 一键启动 CLI 按钮 */
-    #badge-cli{
+    #badge-commands{
       color:var(--ag-toolbar-fg);
-      min-width:44px;
+      min-width:46px;
       padding:0 6px;
       gap:3px;
       justify-content:center;
@@ -552,50 +552,12 @@
       user-select: none;
       -webkit-user-select: none;
     }
-    #badge-cli:hover,#badge-cli:focus-visible{
+    #badge-commands:hover,#badge-commands:focus-visible{
       color:var(--ag-toolbar-fg-hover);
     }
-    #badge-cli:active,
-    #badge-cli[data-pressed="true"]{
-      transform: scale(0.92);
+    #badge-commands:active,
+    #badge-commands[aria-expanded="true"]{
       background: rgba(127, 127, 127, 0.16);
-    }
-    #badge-cli[data-busy="true"]{
-      cursor: wait;
-      pointer-events: none;
-    }
-    #badge-cli[data-busy="true"] .cli-icon{
-      animation: ag-cli-pulse 0.8s ease-in-out infinite alternate;
-    }
-    @keyframes ag-cli-pulse {
-      0% { transform: scale(0.9); opacity: 0.6; }
-      100% { transform: scale(1.15); opacity: 1; }
-    }
-    .cli-icon{
-      font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
-      font-size:10.5px;font-weight:700;
-      color:var(--ag-custom-token-accent,var(--ag-token-accent-default));
-      line-height:1;
-      display: inline-block;
-      transition: transform 0.15s ease;
-    }
-
-    /* CLI 启动状态提示浮层 */
-    #cli-launch-toast{
-      position:fixed;top:38px;right:140px;z-index:2147483650;
-      max-width:360px;padding:7px 11px;border-radius:8px;
-      border:1px solid var(--ag-float-border);
-      background:var(--ag-float-bg);color:var(--ag-text-primary);
-      box-shadow:var(--ag-float-shadow);font-size:11.5px;line-height:1.4;
-      pointer-events:auto;transition:opacity .15s ease,transform .15s ease;
-    }
-    #cli-launch-toast[hidden]{display:none!important}
-    #cli-launch-toast[data-tone="error"]{
-      border-color:rgba(239,68,68,0.45);
-      color:#f87171;
-    }
-    :host([data-theme="light"]) #cli-launch-toast[data-tone="error"]{
-      color:#dc2626;
     }
 
     /* 单元 5: 窄屏溢出菜单入口 */
@@ -612,15 +574,15 @@
     }
     :host([data-layout="compact"]) #badge-speed,
     :host([data-layout="compact"]) #badge-tokens,
-    :host([data-layout="compact"]) #badge-cli{
+    :host([data-layout="compact"]) #badge-commands{
       padding:0 5px;font-size:11.5px;gap:3px;
     }
     :host([data-layout="minimal"]) #badge-speed,
     :host([data-layout="minimal"]) #badge-tokens,
-    :host([data-layout="minimal"]) #badge-cli,
+    :host([data-layout="minimal"]) #badge-commands,
     :host([data-layout="ring-only"]) #badge-speed,
     :host([data-layout="ring-only"]) #badge-tokens,
-    :host([data-layout="ring-only"]) #badge-cli{
+    :host([data-layout="ring-only"]) #badge-commands{
       display:none!important;
     }
     :host([data-layout="minimal"]) #badge-overflow,
@@ -2528,6 +2490,433 @@
     .ag-dp-action-btn:focus-visible{
       outline:none;border-color:#a78bfa;box-shadow:0 0 0 2px rgba(139,92,246,0.28);
     }
+
+
+/* ============================================================================
+ * Personal Desktop Suite Additions: / Commands Hub, KV Cache & Context Breakdown
+ * ============================================================================ */
+.ag-unit-cmd .cmd-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: rgba(129, 140, 248, 0.16);
+  color: #818cf8;
+  margin-right: 2px;
+}
+
+.kv-cache-card,
+.ctx-breakdown-card {
+  background: var(--ag-bg-card);
+  border: 1px solid var(--ag-border-card);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 8px 0;
+}
+
+.kv-cache-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kv-cache-rate {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ag-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.kv-cache-detail {
+  font-size: 11px;
+  color: var(--ag-text-secondary);
+  text-align: right;
+}
+
+.kv-cache-drop-alert {
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+}
+
+.ctx-breakdown-bar {
+  display: flex;
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--ag-bg-subcard);
+  margin-bottom: 7px;
+}
+
+.ctx-bd-seg {
+  display: block;
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+.ctx-bd-seg.seg-sys { background: #6366f1; }
+.ctx-bd-seg.seg-custom { background: #10b981; }
+.ctx-bd-seg.seg-chat { background: #38bdf8; }
+
+.ctx-breakdown-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--ag-text-secondary);
+  margin-bottom: 6px;
+}
+
+.ctx-breakdown-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 10px;
+  font-size: 11px;
+}
+
+.ctx-bd-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: var(--ag-bg-subcard);
+}
+
+.ctx-bd-item-lbl {
+  color: var(--ag-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ctx-bd-item-val {
+  color: var(--ag-text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ctx-breakdown-files {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--ag-border-subcard);
+  font-size: 10.5px;
+  color: var(--ag-text-muted);
+  line-height: 1.5;
+}
+
+.quota-ring-mode-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  border-radius: 7px;
+  background: var(--ag-bg-subcard);
+  border: 1px solid var(--ag-border-subcard);
+}
+
+/* Panel 4: / Commands & Skills Hub */
+#panel-commands {
+  width: 480px;
+}
+
+.cmd-hub-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+.cmd-hub-stats {
+  font-size: 10.5px;
+  color: var(--ag-text-muted);
+  line-height: 1.4;
+}
+
+.cmd-search-wrap {
+  display: flex;
+}
+
+.cmd-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 7px;
+  background: var(--ag-bg-subcard);
+  border: 1px solid var(--ag-border-card);
+  color: var(--ag-text-primary);
+  outline: none;
+}
+
+.cmd-search-input:focus {
+  border-color: #6366f1;
+}
+
+.cmd-hub-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.cmd-tab-btn,
+.cmd-subcat-pill {
+  padding: 3px 8px;
+  font-size: 11px;
+  border-radius: 999px;
+  border: 1px solid var(--ag-border-subcard);
+  background: var(--ag-bg-subcard);
+  color: var(--ag-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.cmd-tab-btn.active,
+.cmd-subcat-pill.active {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: rgba(99, 102, 241, 0.55);
+  color: var(--ag-text-primary);
+  font-weight: 600;
+}
+
+.cmd-subcat-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 54px;
+  overflow-y: auto;
+}
+
+.cmd-subcat-pill {
+  font-size: 10px;
+  padding: 2px 7px;
+}
+
+.cmd-hub-toast {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.cmd-hub-toast.is-ok {
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+.cmd-hub-toast.is-error {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.cmd-hub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 180px;
+  max-height: 390px;
+  padding-right: 2px;
+}
+
+.cmd-empty-state {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--ag-text-muted);
+}
+
+.cmd-card {
+  border: 1px solid var(--ag-border-card);
+  background: var(--ag-bg-card);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cmd-card.is-expanded {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.cmd-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.cmd-card-head:hover {
+  background: var(--ag-bg-subcard);
+}
+
+.cmd-card-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.cmd-card-top-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+
+.cmd-slash-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.12);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.cmd-alias-tag {
+  font-size: 9.5px;
+  color: var(--ag-text-muted);
+  border: 1px dashed var(--ag-border-subcard);
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.cmd-card-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ag-text-primary);
+}
+
+.cmd-card-summary {
+  font-size: 11px;
+  color: var(--ag-text-secondary);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cmd-card.is-expanded .cmd-card-summary {
+  -webkit-line-clamp: unset;
+}
+
+.cmd-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cmd-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ag-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.cmd-icon-btn.is-fav {
+  color: #f59e0b;
+}
+
+.cmd-insert-btn {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 5px;
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.14);
+  color: var(--ag-text-primary);
+  cursor: pointer;
+}
+
+.cmd-insert-btn:hover {
+  background: rgba(99, 102, 241, 0.28);
+}
+
+.cmd-card-detail {
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--ag-border-subcard);
+  background: var(--ag-bg-subcard);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ag-text-secondary);
+}
+
+.cmd-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 10px;
+  color: var(--ag-text-muted);
+  margin-bottom: 5px;
+}
+
+.cmd-detail-row {
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.cmd-detail-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  background: var(--ag-bg-card);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.cmd-detail-en {
+  font-size: 10.5px;
+  color: var(--ag-text-muted);
+}
+
+.cmd-detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cmd-pin-btn,
+.cmd-copy-btn {
+  padding: 3px 8px;
+  font-size: 10.5px;
+  border-radius: 5px;
+  border: 1px solid var(--ag-border-card);
+  background: var(--ag-bg-card);
+  color: var(--ag-text-primary);
+  cursor: pointer;
+}
+
+.cmd-pin-btn.is-pinned {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  font-weight: 600;
+}
   </style>
 
   <!-- 顶部基本单元 0: 模型额度圆环入口（工具组最左侧） -->
@@ -2580,11 +2969,11 @@
   <span id="token-hover-extra" class="sr-only"></span>
 </button>
 
-<!-- 顶部基本单元 4: 一键启动 CLI 模式 -->
-<button id="badge-cli" class="ag-unit" type="button" aria-label="启动 CLI" data-i18n-aria="badge.cli.aria"
-  title="一键启动 Antigravity CLI 终端（自动进入当前项目目录）" data-i18n-title="badge.cli.title">
-  <span class="cli-icon" aria-hidden="true">&gt;_</span>
-  <span id="cli-label">CLI</span>
+<!-- 顶部基本单元 4: / 指令与技能中心 -->
+<button id="badge-commands" class="ag-unit ag-unit-cmd" type="button" aria-label="/ 指令与技能中心"
+  title="/ 指令速查与 E:\\agent_skills 技能中心（点击展开，支持搜索、原生挂载与一键填入）" aria-expanded="false">
+  <span class="cmd-icon" aria-hidden="true">/</span>
+  <span id="cmd-label">指令</span>
 </button>
 
 <!-- 顶部基本单元 5: 窄屏溢出菜单按钮 -->
@@ -2596,9 +2985,6 @@
     <circle cx="12.5" cy="8" r="1.25"></circle>
   </svg>
 </button>
-
-<!-- CLI 启动反馈提示气泡 -->
-<div id="cli-launch-toast" hidden role="status" aria-live="polite"></div>
 
 <!-- 上下文圆环悬停/聚焦信息气泡（参考图三层结构） -->
 <div id="context-tooltip" role="tooltip" data-visible="false" data-placement="bottom">
@@ -2622,10 +3008,9 @@
         用量一览</span></span>
     <span id="overflow-tokens-val" class="overflow-item-val">--</span>
   </button>
-  <button id="overflow-cli-btn" class="overflow-item" type="button">
-    <span class="overflow-item-label"><span class="cli-icon">&gt;_</span><span data-i18n="overflow.cli">启动 CLI
-        终端</span></span>
-    <span id="overflow-cli-val" class="overflow-item-val">agy</span>
+  <button id="overflow-commands-btn" class="overflow-item" type="button">
+    <span class="overflow-item-label"><span class="cmd-icon">/</span><span>指令与技能中心</span></span>
+    <span class="overflow-item-val">Hub</span>
   </button>
 </div>
 
@@ -2636,7 +3021,7 @@
       <span class="panel-title-text" style="font-size:13px;font-weight:600;color:var(--ag-text-primary)"
         data-i18n="panel.ctx.title" title="Antigravity Context Meter" data-i18n-title="panel.ctx.fullName"
         aria-label="Antigravity Context Meter" data-i18n-aria="panel.ctx.fullName">💬 当前会话上下文</span>
-      <span id="v">0.8.8 α</span>
+      <span id="v">v0.9.0 Personal</span>
     </div>
     <div class="panel-header-actions ctx-header-actions">
       <!-- 插件面板三语言快速切换分段按钮 -->
@@ -2649,22 +3034,13 @@
         <button id="btn-top-lang-en" class="ctx-seg-btn" type="button" data-panel-lang="en" title="English"
           aria-label="English">EN</button>
       </div>
-      <button id="btn-github-repo-ctx" class="panel-icon-btn" type="button" aria-label="打开 GitHub 仓库"
+      <button id="btn-github-repo-ctx" class="panel-icon-btn" type="button" aria-label="打开 GitHub Fork 仓库"
         data-i18n-aria="header.github.aria" title="打开 GitHub 仓库" data-i18n-title="header.github.aria">
         <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
           <path
             d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
           </path>
         </svg>
-      </button>
-      <button id="btn-check-update-ctx" class="panel-icon-btn update-btn" type="button" aria-label="检查插件更新"
-        data-i18n-aria="header.update.aria" title="检查插件更新" data-i18n-title="header.update.aria"
-        style="position:relative">
-        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 8A6 6 0 1 1 8 2M14 2v6h-6"></path>
-        </svg>
-        <span id="update-badge-dot-ctx" class="update-badge-dot" style="display:none"></span>
       </button>
       <button id="btn-panel-palette" class="panel-icon-btn" type="button" aria-label="外观与调色设置"
         data-i18n-aria="header.palette.aria" title="外观与调色设置" data-i18n-title="header.palette.aria">🎨</button>
@@ -2677,12 +3053,10 @@
   </div>
 
   <div id="view-context">
-    <!-- 顶部 4 分页标签栏 -->
+    <!-- 顶部 3 分页标签栏（精简去除上下文加长模型设置页） -->
     <div id="ctx-tabs-bar" class="ctx-tabs-bar" role="tablist" aria-label="上下文面板分页" data-i18n-aria="tabs.aria">
       <button id="tab-ctx-session" class="ctx-tab-btn active" type="button" role="tab" aria-selected="true"
         data-ctx-tab="session" data-i18n="tab.session">当前会话</button>
-      <button id="tab-ctx-models" class="ctx-tab-btn" type="button" role="tab" aria-selected="false"
-        data-ctx-tab="models" data-i18n="tab.models">模型设置</button>
       <button id="tab-ctx-speed" class="ctx-tab-btn" type="button" role="tab" aria-selected="false" data-ctx-tab="speed"
         data-i18n="tab.speed">速度对比</button>
       <button id="tab-ctx-settings" class="ctx-tab-btn" type="button" role="tab" aria-selected="false"
@@ -2811,19 +3185,33 @@
         </div>
       </div>
 
-      <!-- 紧凑上下文设置入口卡片 -->
-      <div id="ctx-compact-card" class="ctx-compact-card">
-        <div class="ctx-compact-info">
-          <div class="ctx-compact-title" data-i18n="session.compact.title">上下文设置</div>
-          <div class="ctx-compact-meta">
-            <span><span data-i18n="session.compact.savedLabel">本模型已保存：</span><strong
-                id="ctx-compact-saved" data-i18n="status.savedDefault">未单独设置（使用默认）</strong></span>
-            <span><span data-i18n="session.compact.clientLabel">客户端当前使用：</span><strong
-                id="ctx-compact-client" data-i18n="status.badge.reading">状态读取中…</strong></span>
-          </div>
+      <!-- KV 缓存命中率卡片 (PR #37 精确口径：cacheWrite 计入未命中输入) -->
+      <div id="kv-cache-card" class="kv-cache-card">
+        <div class="key-header" style="margin-bottom:4px">
+          <span class="key-title">🧊 KV 缓存命中率</span>
+          <span id="kv-cache-badge" class="key-pill pill-muted">待读取</span>
         </div>
-        <button id="btn-goto-model-settings" class="ctx-compact-link-btn" type="button"
-          data-i18n="session.compact.gotoModels">去模型设置 ›</button>
+        <div class="kv-cache-row">
+          <span id="kv-cache-rate" class="kv-cache-rate">—</span>
+          <span id="kv-cache-detail" class="kv-cache-detail">等待本轮模型返回缓存统计…</span>
+        </div>
+        <div id="kv-cache-drop-alert" class="kv-cache-drop-alert" hidden></div>
+      </div>
+
+      <!-- 上下文精细构成拆解卡片（直读本地会话 DB gen_metadata 权威分组） -->
+      <div id="ctx-breakdown-card" class="ctx-breakdown-card">
+        <div class="key-header" style="margin-bottom:5px">
+          <span class="key-title">🧩 上下文构成拆解</span>
+          <span id="ctx-breakdown-badge" class="key-pill pill-muted">读取中</span>
+        </div>
+        <div id="ctx-breakdown-bar" class="ctx-breakdown-bar" title="系统基础 / 规则·技能·MCP / 对话与工具">
+          <span id="ctx-bd-seg-sys" class="ctx-bd-seg seg-sys" style="width:0%"></span>
+          <span id="ctx-bd-seg-custom" class="ctx-bd-seg seg-custom" style="width:0%"></span>
+          <span id="ctx-bd-seg-chat" class="ctx-bd-seg seg-chat" style="width:0%"></span>
+        </div>
+        <div id="ctx-breakdown-legend" class="ctx-breakdown-legend"></div>
+        <div id="ctx-breakdown-list" class="ctx-breakdown-list"></div>
+        <div id="ctx-breakdown-files" class="ctx-breakdown-files" hidden></div>
       </div>
 
       <!-- 底层技术参数与附件审计 -->
@@ -3332,284 +3720,63 @@
         主动测试：未接通。目前没有可靠的指定模型调用入口，暂时只能使用日常对话的实测记录。</div>
     </div>
 
-    <!-- 设置与系统配置 (第四分页: 配置 / setting) -->
+    <!-- 设置与系统配置 (配置页：免重启实时汉化 + 503 自动重试 + 自愈守护 + 配色自定义) -->
     <div id="pane-ctx-settings" class="ctx-tab-pane" role="tabpanel" aria-labelledby="tab-ctx-settings" hidden>
-      <!-- 1. 一键推荐配置与总览（默认不自动应用，需用户预览勾选并确认） -->
-      <div class="ctx-settings-card" id="enhance-preset-card">
-        <div class="ctx-settings-card-hdr">
-          <div class="ctx-settings-card-title" data-i18n="enhance.preset.title">✨ 一键推荐配置（按需勾选预览）</div>
-          <span id="enhance-global-badge" class="key-pill pill-muted" data-i18n="settings.common.reading">读取中…</span>
-        </div>
-        <div class="ctx-settings-card-desc" data-i18n="enhance.preset.desc">正常安装默认保持客户端原样。下方列出推荐增强组合；只有你勾选并确认后才会实际写入。
-        </div>
-        <div class="ctx-preset-checklist">
-          <label class="ctx-preset-check-item">
-            <input id="chk-rec-prompt" type="checkbox" checked>
-            <div class="ctx-preset-check-meta">
-              <strong data-i18n="enhance.preset.itemPrompt">系统提示词 4 档（极简防幻觉）</strong>
-              <span data-i18n="enhance.preset.itemPromptSub">精简模板套话并保留真实工具契约；仅作用于系统提示，不能保证模型永不犯错。</span>
-            </div>
-          </label>
-          <label class="ctx-preset-check-item">
-            <input id="chk-rec-title" type="checkbox" checked>
-            <div class="ctx-preset-check-meta">
-              <strong data-i18n="enhance.preset.itemTitle">自动中文会话标题</strong>
-              <span data-i18n="enhance.preset.itemTitleSub">新会话自动生成简体中文标题（等长替换指令文本，不破坏结构）。</span>
-            </div>
-          </label>
-          <label class="ctx-preset-check-item">
-            <input id="chk-rec-lang" type="checkbox" checked>
-            <div class="ctx-preset-check-meta">
-              <strong data-i18n="enhance.preset.itemLang">客户端简体中文界面（Antigravity 本身）</strong>
-              <span data-i18n="enhance.preset.itemLangSub">仅改变桌面端壳层中文，不影响你选择的插件面板语言。</span>
-            </div>
-          </label>
-          <label class="ctx-preset-check-item">
-            <input id="chk-rec-ctx" type="checkbox" checked>
-            <div class="ctx-preset-check-meta">
-              <strong data-i18n="enhance.preset.itemCtx">上下文模式：跟随模型</strong>
-              <span data-i18n="enhance.preset.itemCtxSub">按模型各自支持的最大长度运行，不硬锁固定 983,040 或 512,000。</span>
-            </div>
-          </label>
-        </div>
-        <div class="ctx-settings-card-actions">
-          <button id="btn-enhance-preset-apply" class="unlock-btn unlock-btn-primary" type="button"
-            data-i18n="enhance.preset.applyBtn">应用所选推荐配置</button>
-          <button id="btn-enhance-restore-all" class="unlock-btn unlock-btn-danger" type="button"
-            data-i18n="enhance.restoreAll.btn">全部恢复官方默认</button>
-        </div>
-        <div id="enhance-preset-confirm" class="ctx-enhance-confirm" hidden>
-          <div id="enhance-preset-confirm-text"></div>
-          <div class="ctx-enhance-confirm-actions">
-            <button id="btn-enhance-confirm-cancel" class="unlock-btn unlock-btn-secondary" type="button"
-              data-i18n="models.restartConfirm.cancel">取消</button>
-            <button id="btn-enhance-confirm-go" class="unlock-btn unlock-btn-primary" type="button"
-              data-i18n="enhance.confirm.go">确认应用</button>
-          </div>
-        </div>
-        <div id="enhance-global-result" class="unlock-result-box" style="display:none;">
-          <div id="enhance-global-result-text" class="unlock-result-text"></div>
-          <div id="enhance-global-result-actions" class="unlock-result-actions" hidden>
-            <button id="btn-enhance-restart-ls" class="unlock-btn unlock-btn-secondary" type="button"
-              data-i18n="enhance.btn.restartLs">重启语言服务</button>
-            <button id="btn-enhance-restart-host" class="unlock-btn unlock-btn-primary" type="button"
-              data-i18n="models.restartBtn">重启客户端使设置生效</button>
-          </div>
-          <div id="enhance-global-manual-note" class="ctx-result-manual-note" hidden data-i18n="models.manualRestart">
-            请手动重启：关闭所有 Antigravity 窗口（包括托盘图标里的“退出”），再重新打开 Antigravity。</div>
-        </div>
-      </div>
-
-      <!-- 2. 客户端界面语言与品牌标题 (Antigravity 本身) -->
+      <!-- 1. 客户端界面汉化 (Antigravity v2.33.0+ · 免重启实时开关) -->
       <div class="ctx-settings-card" id="client-brand-lang-card">
         <div class="ctx-settings-card-hdr">
-          <div class="ctx-settings-card-title" data-i18n="settings.clientLang.title">🖥️ 客户端界面语言与品牌（Antigravity 本身）
-          </div>
-          <span id="chinese-badge" class="key-pill pill-muted" data-i18n="settings.common.reading">读取中…</span>
+          <div class="ctx-settings-card-title">🇨🇳 客户端界面汉化（Antigravity v2.33.0+）</div>
+          <span id="chinese-badge" class="key-pill pill-muted">读取中…</span>
         </div>
-        <div id="chinese-status-desc" class="ctx-settings-card-desc" data-i18n="settings.clientLang.detecting">
-          正在检测桌面端汉化运行状态…</div>
-        <div class="ctx-segmented ctx-lang-segmented" id="client-lang-segmented" role="group" aria-label="客户端界面语言"
-          data-i18n-aria="settings.clientLang.aria">
-          <button id="btn-client-lang-zh-CN" class="ctx-seg-btn" type="button" data-client-lang="zh-CN">简体中文</button>
-          <button id="btn-client-lang-en" class="ctx-seg-btn" type="button" data-client-lang="en">English</button>
+        <div id="chinese-status-desc" class="ctx-settings-card-desc">
+          基于 MIT 开源 v2.33.0+ 全量词典（4,264+ 词条）与叶节点可逆翻译，支持随时免重启实时切换中/英文，并自动保护聊天正文与代码块不被误译。
         </div>
-        <div class="ctx-small-label" style="margin-top:8px" data-i18n="enhance.brand.label">左上角品牌文字显示（仅作用于左上角品牌位，不影响
-          Logo、菜单或代码）：</div>
-        <div class="ctx-segmented ctx-lang-segmented" id="brand-title-segmented" role="group" aria-label="品牌名称选项"
-          data-i18n-aria="enhance.brand.aria">
-          <button id="btn-brand-english" class="ctx-seg-btn active" type="button" data-brand-title="english"
-            data-i18n="enhance.brand.english">Antigravity</button>
-          <button id="btn-brand-hidden" class="ctx-seg-btn" type="button" data-brand-title="hidden"
-            data-i18n="enhance.brand.hidden">隐藏</button>
-          <button id="btn-brand-translated" class="ctx-seg-btn" type="button" data-brand-title="translated"
-            data-i18n="enhance.brand.translated">反重力</button>
+        <div class="ctx-segmented ctx-lang-segmented" id="client-lang-segmented" role="group" aria-label="客户端界面语言">
+          <button id="btn-client-lang-zh-CN" class="ctx-seg-btn" type="button" data-client-lang="zh-CN">简体中文（开启）</button>
+          <button id="btn-client-lang-en" class="ctx-seg-btn" type="button" data-client-lang="en">English（原文）</button>
         </div>
-        <div id="brand-apply-feedback" class="ctx-brand-feedback" style="display:none;"></div>
-        <div id="client-lang-license-note" class="ctx-client-lang-note" data-i18n="settings.clientLang.licenseNote">
-          说明：此设置控制 Antigravity 客户端本身，与顶部插件面板语言相互独立。切换客户端语言需重新安装/重启客户端后生效。</div>
-        <div class="ctx-settings-card-actions">
-          <button id="btn-toggle-chinese-module" class="unlock-btn unlock-btn-primary" type="button"
-            data-i18n="settings.clientLang.toggle">切换汉化状态</button>
-          <button id="btn-apply-brand-title" class="unlock-btn unlock-btn-secondary" type="button"
-            data-i18n="enhance.brand.applyBtn">保存品牌选择并应用</button>
+        <div id="client-lang-live-feedback" class="ctx-client-lang-note" style="margin-top:6px">
+          提示：点击上方选项后立即实时生效，无需重启 Antigravity，且会自动记住你的偏好。
         </div>
       </div>
 
-      <!-- 3. 回答与工具使用规则 (原防幻觉档位) 与自动中文标题 -->
-      <div class="ctx-settings-card" id="enhance-prompt-card">
+      <!-- 2. 503 限流瞬时错误自动重试 -->
+      <div class="ctx-settings-card" id="auto-retry-card">
         <div class="ctx-settings-card-hdr">
-          <div class="ctx-settings-card-title" data-i18n="enhance.prompt.title">🧠 回答与工具使用规则</div>
-          <span id="enhance-prompt-badge" class="key-pill pill-muted" data-i18n="settings.common.reading">读取中…</span>
+          <div class="ctx-settings-card-title">🔄 503 / 服务端瞬时限流自动重试</div>
+          <span id="auto-retry-badge" class="key-pill pill-muted">已关闭</span>
         </div>
-        <!-- 第一层：默认可见的白话说明 -->
-        <div class="ctx-plain-help"
-          style="margin:4px 0 8px 0;background:var(--ag-bg-subcard);border:1px solid var(--ag-border-subcard);border-radius:6px;padding:8px 10px;">
-          <div style="font-size:11.5px;line-height:1.55;color:var(--ag-text-primary);"
-            data-i18n="enhance.prompt.plainIntro">
-            调整客户端给 AI 的工作说明，让它更重视证据：没读过的文件不猜，没运行的测试不说通过。它不会升级模型底层能力，也不能保证回答永远正确。
-          </div>
-          <div id="enhance-tier-current-desc"
-            style="font-size:11px;line-height:1.5;color:var(--ag-text-secondary);margin-top:4px;">
-            当前档位说明加载中…
-          </div>
+        <div id="auto-retry-status-desc" class="ctx-settings-card-desc">
+          开启后，遇到 503 / No capacity available 等服务端瞬时错误时将自动退避重试，避免频繁手动点击 Retry。
         </div>
-        <div class="ctx-enhance-status-grid">
-          <div class="ctx-enhance-stat">
-            <div class="ctx-enhance-stat-lbl" data-i18n="enhance.stat.prompt">当前检测档位</div>
-            <div id="enhance-stat-prompt" class="ctx-enhance-stat-val">—</div>
-          </div>
-          <div class="ctx-enhance-stat">
-            <div class="ctx-enhance-stat-lbl" data-i18n="enhance.stat.title">自动中文标题</div>
-            <div id="enhance-stat-title" class="ctx-enhance-stat-val">—</div>
-          </div>
-          <div class="ctx-enhance-stat">
-            <div class="ctx-enhance-stat-lbl" data-i18n="enhance.stat.evidence">证据检测状态</div>
-            <div id="enhance-stat-slots" class="ctx-enhance-stat-val">—</div>
-          </div>
-          <div class="ctx-enhance-stat">
-            <div class="ctx-enhance-stat-lbl" data-i18n="enhance.stat.backup">原版内核备份</div>
-            <div id="enhance-stat-backup" class="ctx-enhance-stat-val">—</div>
-          </div>
-        </div>
-        <div id="enhance-tier-grid" class="ctx-tier-grid" role="group" aria-label="规则档位"
-          data-i18n-aria="enhance.prompt.aria">
-          <button id="enhance-tier-0" class="ctx-tier-btn" type="button" data-enhance-tier="0">
-            <span class="ctx-tier-num">0</span>
-            <span class="ctx-tier-name" data-i18n="enhance.tier.0.short">原版</span>
-          </button>
-          <button id="enhance-tier-1" class="ctx-tier-btn" type="button" data-enhance-tier="1">
-            <span class="ctx-tier-num">1</span>
-            <span class="ctx-tier-name" data-i18n="enhance.tier.1.short">基础</span>
-          </button>
-          <button id="enhance-tier-2" class="ctx-tier-btn" type="button" data-enhance-tier="2">
-            <span class="ctx-tier-num">2</span>
-            <span class="ctx-tier-name" data-i18n="enhance.tier.2.short">精简</span>
-          </button>
-          <button id="enhance-tier-3" class="ctx-tier-btn" type="button" data-enhance-tier="3">
-            <span class="ctx-tier-num">3</span>
-            <span class="ctx-tier-name" data-i18n="enhance.tier.3.short">深度</span>
-          </button>
-          <button id="enhance-tier-4" class="ctx-tier-btn" type="button" data-enhance-tier="4">
-            <span class="ctx-tier-num">4</span>
-            <span class="ctx-tier-name" data-i18n="enhance.tier.4.short">极简</span>
-          </button>
-        </div>
-        <div id="enhance-tier-matrix" class="ctx-tier-matrix">
-          <div id="enhance-tier-matrix-title" class="ctx-tier-matrix-title">—</div>
-          <div class="ctx-tier-matrix-row">
-            <span class="ctx-tier-matrix-k" data-i18n="enhance.matrix.keeps">保留</span>
-            <span id="enhance-tier-keeps" class="ctx-tier-matrix-v">—</span>
-          </div>
-          <div class="ctx-tier-matrix-row">
-            <span class="ctx-tier-matrix-k" data-i18n="enhance.matrix.clears">清空</span>
-            <span id="enhance-tier-clears" class="ctx-tier-matrix-v">—</span>
-          </div>
-          <div class="ctx-tier-matrix-row">
-            <span class="ctx-tier-matrix-k" data-i18n="enhance.matrix.replaces">替换</span>
-            <span id="enhance-tier-replaces" class="ctx-tier-matrix-v">—</span>
-          </div>
-          <div class="ctx-tier-matrix-row">
-            <span class="ctx-tier-matrix-k" data-i18n="enhance.matrix.meaning">对你的影响</span>
-            <span id="enhance-tier-meaning" class="ctx-tier-matrix-v">—</span>
-          </div>
-        </div>
-        <div id="enhance-hallucination-note" class="ctx-tier-note-warn" data-i18n="enhance.hallucinationNote">
-          说明：规则档位通过精简冗余指引并强化真实工具核对来规范行为。高档位删减提示模板中的工作指引，不等于删除用户文件或工件本身；是否影响具体能力需在对话中实际验证。</div>
-        <label class="ctx-toggle-row">
-          <div class="ctx-toggle-row-text">
-            <span class="ctx-toggle-row-title" data-i18n="enhance.titlePatch.label">自动生成简体中文会话标题</span>
-            <span class="ctx-toggle-row-sub" data-i18n="enhance.titlePatch.sub">等长替换会话命名提示词，不破坏原有长度对齐；支持随时改回官方英文。</span>
-          </div>
-          <input id="chk-enhance-chinese-title" type="checkbox">
-        </label>
-        <div class="ctx-settings-card-actions">
-          <button id="btn-enhance-apply-prompt" class="unlock-btn unlock-btn-primary" type="button"
-            data-i18n="enhance.btn.applyPrompt">应用提示词与标题设置</button>
-          <button id="btn-enhance-refresh" class="unlock-btn unlock-btn-secondary" type="button"
-            data-i18n="models.btn.refreshStatus">刷新状态</button>
-        </div>
-        <div id="enhance-prompt-result" class="unlock-result-box" style="display:none;">
-          <div id="enhance-prompt-result-text" class="unlock-result-text"></div>
-        </div>
-
-        <!-- 第二层：可展开的“详细说明” -->
-        <div class="tech-drawer" id="enhance-details-drawer" style="margin-top:4px">
-          <button id="btn-toggle-enhance-details" class="drawer-trigger" aria-expanded="false" type="button">
-            <span class="drawer-trigger-left" data-i18n="enhance.details.toggle">详细说明：来源范围、三层状态与检测依据</span>
-            <span id="enhance-details-arrow" class="drawer-arrow" data-i18n="drawer.expand">▼ 展开</span>
-          </button>
-          <div id="enhance-details-body" class="drawer-body" style="display:none;">
-            <div class="unlock-panel-content">
-              <div class="unlock-notice">
-                <div class="unlock-desc" data-i18n="enhance.details.body">方案来源：PR #4 (Jia131313) 与 PR #3 (anyu0804 /
-                  Linux.do @23375)，由本项目进行本地适配、工具契约安全核对与多语言整合。<br><br>
-                  <strong>修改目标程序</strong>：仅修改本地桌面端语言服务核心程序内嵌模板表；不改动任何云端模型，亦不影响 CLI 以外的外部环境。<br><br>
-                  <strong>三层状态区别</strong>：<br>
-                  1. <strong>写入状态</strong>：检测目标程序磁盘文件已覆写指定槽位（安全空格对齐填充，零结构偏移）。<br>
-                  2. <strong>服务加载状态</strong>：需完全退出并重启客户端后，由新启动的语言服务进程加载读取。<br>
-                  3. <strong>行为效果验证</strong>：提示词仅是 AI 的工作指南，不能保证永不犯错；实际表现需由用户在真实会话中体验，不宣称数学上的绝对消除。
-                </div>
-              </div>
-              <div id="enhance-binary-list" class="unlock-desc" style="margin-top:6px;"></div>
-              <div class="unlock-credit-row">
-                <span class="unlock-credit-lbl"
-                  data-i18n="enhance.details.credit">恢复操作：点击上方“全部恢复官方默认”将无损还原官方备份模板。</span>
-              </div>
-            </div>
-          </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px">
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ag-text-primary);cursor:pointer">
+            <input id="chk-auto-retry-503" type="checkbox">
+            <span>启用自动退避重试</span>
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ag-text-secondary)">
+            <span>最大重试</span>
+            <select id="sel-auto-retry-max" style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--ag-bg-subcard);border:1px solid var(--ag-border-subcard);color:var(--ag-text-primary)">
+              <option value="1">1 次</option>
+              <option value="2" selected>2 次</option>
+              <option value="3">3 次</option>
+            </select>
+          </label>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- 保留：兼容隐藏旧中文折叠触发节点以防测试脚本寻找该 ID -->
-  <div id="chinese-i18n-drawer" hidden>
-    <button id="btn-toggle-chinese" type="button" hidden></button>
-    <div id="chinese-drawer-body" style="display:none;"><span id="chinese-drawer-arrow"></span></div>
-  </div>
-
-  <!-- 5. 免 TUN 网络直连 (AntigravityProxyNoTun) -->
-  <div class="tech-drawer" id="proxy-notun-drawer">
-    <button id="btn-toggle-proxy" class="drawer-trigger" aria-expanded="false" type="button">
-      <span class="drawer-trigger-left">
-        <span data-i18n="settings.proxy.title">🌐 免 TUN 网络直连（本地代理）</span>
-        <span id="proxy-badge" class="key-pill pill-muted" style="margin-left:6px;font-size:10.5px;"
-          data-i18n="settings.common.reading">读取中…</span>
-      </span>
-      <span id="proxy-drawer-arrow" class="drawer-arrow" data-i18n="drawer.expand">▼ 展开</span>
-    </button>
-    <div id="proxy-drawer-body" class="drawer-body" style="display:none;">
-      <div class="unlock-panel-content">
-        <div class="unlock-status-row">
-          <div class="unlock-status-meta">
-            <div class="unlock-label" data-i18n="settings.proxy.statusLabel">代理直连配置与状态</div>
-            <div id="proxy-status-desc" class="unlock-desc" data-i18n="settings.proxy.checking">正在核对代理设置…</div>
-          </div>
+      <!-- 3. 更新后自愈守护 (Headless Sidecar Keeper) -->
+      <div class="ctx-settings-card" id="keeper-card">
+        <div class="ctx-settings-card-hdr">
+          <div class="ctx-settings-card-title">🛡️ 更新后自动自愈守护（Sidecar Keeper）</div>
+          <span id="keeper-badge" class="key-pill pill-muted">检测中…</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin:8px 0;">
-          <label style="font-size:11px;color:var(--ag-text-secondary);display:flex;flex-direction:column;gap:4px;">
-            <span data-i18n="settings.proxy.urlLabel">本地代理地址 (例如 http://127.0.0.1:7897 或 socks5://...)：</span>
-            <input id="input-proxy-url" type="text" class="unlock-input"
-              style="padding:4px 8px;font-size:11px;background:var(--ag-bg-subcard);border:1px solid var(--ag-border-subcard);color:var(--ag-text-primary);border-radius:4px;"
-              value="http://127.0.0.1:7897" />
-          </label>
-          <label style="font-size:11px;color:var(--ag-text-secondary);display:flex;flex-direction:column;gap:4px;">
-            <span data-i18n="settings.proxy.bypassLabel">绕过代理列表 (NO_PROXY)：</span>
-            <input id="input-proxy-bypass" type="text" class="unlock-input"
-              style="padding:4px 8px;font-size:11px;background:var(--ag-bg-subcard);border:1px solid var(--ag-border-subcard);color:var(--ag-text-primary);border-radius:4px;"
-              value="localhost,127.0.0.1,::1,<local>" />
-          </label>
+        <div id="keeper-status-desc" class="ctx-settings-card-desc">
+          通过 Antigravity 官方无界面 Sidecar 机制（不弹出任何多余窗口），在每次客户端自动更新后自动检测并静默重装本套件。
         </div>
-        <div class="unlock-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button id="btn-test-proxy" class="unlock-btn unlock-btn-secondary" type="button"
-            data-i18n="settings.proxy.testBtn">🔍 测试代理连通性</button>
-          <button id="btn-save-proxy-config" class="unlock-btn unlock-btn-secondary" type="button" hidden
-            data-i18n="mod.proxy.btnSave">保存代理设置</button>
-          <button id="btn-toggle-proxy-module" class="unlock-btn unlock-btn-primary" type="button"
-            data-i18n="mod.proxy.btnEnable">开启免 TUN 直连</button>
-        </div>
-        <div id="proxy-test-result" style="font-size:11px;margin-top:6px;display:none;color:var(--ag-text-secondary);">
+        <div class="ctx-settings-card-actions" style="margin-top:6px">
+          <button id="btn-toggle-keeper" class="unlock-btn unlock-btn-primary" type="button">安装 / 启用守护</button>
+          <button id="btn-refresh-keeper" class="unlock-btn unlock-btn-secondary" type="button">刷新状态</button>
         </div>
       </div>
     </div>
@@ -3753,15 +3920,6 @@
           </path>
         </svg>
       </button>
-      <button id="btn-check-update" class="panel-icon-btn update-btn" type="button" aria-label="检查插件更新"
-        data-i18n-aria="header.update.aria" title="检查插件更新" data-i18n-title="header.update.aria"
-        style="position:relative">
-        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 8A6 6 0 1 1 8 2M14 2v6h-6"></path>
-        </svg>
-        <span id="update-badge-dot" class="update-badge-dot" style="display:none"></span>
-      </button>
       <button id="btn-panel-tokens-palette" class="panel-icon-btn" type="button" aria-label="外观与调色设置"
         data-i18n-aria="header.palette.aria" title="外观与调色设置" data-i18n-title="header.palette.aria">🎨</button>
       <button id="theme-toggle-tokens" class="panel-icon-btn" type="button" aria-label="切换浅色/深色主题"
@@ -3774,12 +3932,10 @@
 
   <div id="view-tokens">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
-      <div class="source-switch-bar">
-        <span style="font-size:10.5px;color:var(--ag-text-muted);padding:0 4px"
-          data-i18n="tokens.sourceLabel">来源:</span>
-        <button id="src-tab-all" class="switch-pill-btn active" type="button" data-i18n="tokens.src.all">全部</button>
-        <button id="src-tab-desktop" class="switch-pill-btn" type="button" data-i18n="tokens.src.desktop">桌面端</button>
-        <button id="src-tab-cli" class="switch-pill-btn" type="button" data-i18n="tokens.src.cli">CLI</button>
+      <div class="source-switch-bar" style="padding:2px 6px">
+        <span style="font-size:10.5px;color:var(--ag-text-muted)">🖥️ 桌面端专属统计 (Desktop Only)</span>
+        <button id="src-tab-all" class="switch-pill-btn active" type="button" hidden>全部</button>
+        <button id="src-tab-desktop" class="switch-pill-btn" type="button" hidden>桌面端</button>
       </div>
       <div class="view-switch-bar">
         <button id="tok-view-tokens" class="switch-pill-btn active" type="button" data-i18n="tokens.view.tokens">Token
@@ -3789,8 +3945,8 @@
       </div>
     </div>
 
-    <!-- 分账号账本筛选条（ELV-89：严格隔离各账号及未归属历史，不重复堆叠刷新入口） -->
-    <div id="token-account-bar" class="token-account-bar">
+    <!-- 隐藏多账号账本筛选条（纯单机轻量模式） -->
+    <div id="token-account-bar" class="token-account-bar" hidden style="display:none">
       <span class="token-account-lbl" data-i18n="accounts.filterLabel">账本范围:</span>
       <select id="token-account-select" class="token-account-select" aria-label="按账号筛选统计账本" data-i18n-aria="accounts.filterAria" style="display:none">
         <option value="all" data-i18n="accounts.filterAll">全部已记用量（含未归属）</option>
@@ -4798,7 +4954,7 @@
     <div style="display:flex;align-items:center;gap:6px">
       <span id="up-pop-title" style="font-weight:600;font-size:12px;color:var(--ag-text-primary)"
         data-i18n="update.title">🚀 检查更新</span>
-      <span id="up-pop-ver" class="key-pill pill-good" style="font-size:10px">0.8.8 α</span>
+      <span id="up-pop-ver" class="key-pill pill-good" style="font-size:10px">v0.9.0 Personal</span>
     </div>
     <button id="btn-close-update-pop" class="panel-icon-btn" type="button"
       style="padding:1px 5px;font-size:13px">×</button>
@@ -4853,6 +5009,16 @@
       <button id="btn-quota-banner-restart" class="switch-pill-btn active" type="button" hidden data-i18n="quota.restartBtn">重启客户端</button>
     </div>
 
+    <!-- 5h / 周额度环展示模式切换（Issue #41） -->
+    <div id="quota-ring-mode-bar" class="quota-ring-mode-bar">
+      <span style="font-size:10.5px;color:var(--ag-text-muted)">底栏额度环优先展示：</span>
+      <div style="display:inline-flex;gap:4px">
+        <button type="button" class="switch-pill-btn active" data-quota-ring-mode="auto">自动</button>
+        <button type="button" class="switch-pill-btn" data-quota-ring-mode="5h">5h 额度</button>
+        <button type="button" class="switch-pill-btn" data-quota-ring-mode="weekly">周额度</button>
+      </div>
+    </div>
+
     <!-- 独立三时间分列展示（数据更新时间 / 下次自动刷新 / 当前额度重置） -->
     <div id="quota-times-grid" class="quota-times-grid">
       <div class="quota-time-cell">
@@ -4897,131 +5063,36 @@
       Token」按本机输入+缓存+输出原始 Token 统计，受服务端计费权重、同池模型混用、他端消耗及周期采样覆盖度影响；校准过期或样本不足时不按有效推算展示。</div>
     <div id="quota-usage-tip" class="quota-usage-tip" data-i18n="quota.usageTip">💡
       用量提示：使用前可先查看各池剩余额度，优先选择余量充足且适合当前任务的模型。</div>
+  </div>
+</section>
 
-    <!-- 统一多账号切换、自动切号、共享额度对照(ELV-57)与缓存保活保障(ELV-52) -->
-    <div id="quota-accounts-section" class="quota-accounts-section">
-      <div class="quota-subsec-header">
-        <span class="quota-subsec-title" data-i18n="accounts.panelTitle">👤 多账号切换与阈值自动切号</span>
-        <div class="quota-subsec-actions">
-          <button id="btn-acct-import-current" class="switch-pill-btn" type="button" data-i18n="accounts.importCurrent">导入当前</button>
-          <button id="btn-acct-import-tools" class="switch-pill-btn" type="button" hidden data-i18n="accounts.importTools">导入 Tools</button>
-          <button id="btn-acct-oauth-add" class="switch-pill-btn active" type="button" data-i18n="accounts.oauthAdd">+ 登录添加</button>
-        </div>
-      </div>
-      <div id="quota-acct-feedback" class="quota-acct-feedback" hidden></div>
-      <div id="quota-accounts-list" class="quota-accounts-list"></div>
-
-      <!-- 阈值自动切号配置 -->
-      <div class="quota-subcard">
-        <div class="quota-subcard-row">
-          <label class="quota-switch-lbl">
-            <input id="chk-auto-switch-enabled" type="checkbox" />
-            <span data-i18n="accounts.autoSwitchEnable">启用阈值自动切号（默认关闭）</span>
-          </label>
-          <span id="auto-switch-status-pill" class="key-pill pill-muted" data-i18n="accounts.status.disabled">已关闭</span>
-        </div>
-        <div id="auto-switch-config-body" class="auto-switch-grid">
-          <div class="quota-field-lbl"><span data-i18n="accounts.poolLabel">监控共享池</span>
-            <select id="sel-auto-switch-pool" class="quota-compact-select" aria-label="监控共享池" data-i18n-aria="accounts.poolLabel" style="display:none">
-              <option value="shared_gemini_main">Gemini 4 Hydrogen / 3.8 Flash</option>
-              <option value="shared_3p_pool">Claude 5.5 / GPT-OSS 120B</option>
-              <option value="shared_gemini_argon">Gemini 4 Argon / Orchestrator</option>
-              <option value="shared_gemini_carbon">Gemini 4 Carbon</option>
-            </select>
-            <div id="sel-auto-switch-pool-dropdown-wrap" class="ag-dropdown-wrapper ag-dropdown-compact">
-              <div id="sel-auto-switch-pool-dropdown-trigger" class="ag-dropdown-trigger" tabindex="0">
-                <span id="sel-auto-switch-pool-dropdown-label" class="ag-dropdown-label">Gemini 4 Hydrogen / 3.8 Flash</span>
-                <div class="ag-dropdown-arrow">
-                  <svg viewBox="0 0 10 6" width="10" height="6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4" /></svg>
-                </div>
-              </div>
-              <div id="sel-auto-switch-pool-dropdown-menu" class="ag-dropdown-menu"></div>
-            </div>
-          </div>
-          <div class="quota-field-lbl"><span data-i18n="accounts.metricLabel">判断口径</span>
-            <select id="sel-auto-switch-mode" class="quota-compact-select" aria-label="判断口径" data-i18n-aria="accounts.metricLabel" style="display:none">
-              <option value="remaining_pct" data-i18n="accounts.modeRemaining">按剩余额度 &lt;=</option>
-              <option value="used_pct" data-i18n="accounts.modeUsed">按累计已用 &gt;=</option>
-            </select>
-            <div id="sel-auto-switch-mode-dropdown-wrap" class="ag-dropdown-wrapper ag-dropdown-compact">
-              <div id="sel-auto-switch-mode-dropdown-trigger" class="ag-dropdown-trigger" tabindex="0">
-                <span id="sel-auto-switch-mode-dropdown-label" class="ag-dropdown-label" data-i18n="accounts.modeRemaining">按剩余额度 &lt;=</span>
-                <div class="ag-dropdown-arrow">
-                  <svg viewBox="0 0 10 6" width="10" height="6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4" /></svg>
-                </div>
-              </div>
-              <div id="sel-auto-switch-mode-dropdown-menu" class="ag-dropdown-menu"></div>
-            </div>
-          </div>
-          <div class="quota-field-lbl"><span data-i18n="accounts.windowLabel">限额窗口</span>
-            <select id="sel-auto-switch-window" class="quota-compact-select" aria-label="限额窗口" data-i18n-aria="accounts.windowLabel" style="display:none">
-              <option value="primary" data-i18n="accounts.winPrimary">主窗口（最紧缩）</option>
-              <option value="5h">5h</option>
-              <option value="7d">7d</option>
-            </select>
-            <div id="sel-auto-switch-window-dropdown-wrap" class="ag-dropdown-wrapper ag-dropdown-compact">
-              <div id="sel-auto-switch-window-dropdown-trigger" class="ag-dropdown-trigger" tabindex="0">
-                <span id="sel-auto-switch-window-dropdown-label" class="ag-dropdown-label" data-i18n="accounts.winPrimary">主窗口（最紧缩）</span>
-                <div class="ag-dropdown-arrow">
-                  <svg viewBox="0 0 10 6" width="10" height="6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4" /></svg>
-                </div>
-              </div>
-              <div id="sel-auto-switch-window-dropdown-menu" class="ag-dropdown-menu"></div>
-            </div>
-          </div>
-          <label class="quota-field-lbl"><span data-i18n="accounts.thresholdLabel">阈值 (%)</span>
-            <input id="inp-auto-switch-threshold" class="quota-compact-input" type="number" min="1" max="95" value="10" />
-          </label>
-          <div class="auto-switch-candidates-wrap">
-            <div class="quota-field-k" data-i18n="accounts.candidatesLabel">允许切入的候选账号：</div>
-            <div id="auto-switch-candidates-list" class="auto-switch-candidates-list"></div>
-          </div>
-          <div class="auto-switch-save-row">
-            <button id="btn-save-auto-switch" class="switch-pill-btn active" type="button" data-i18n="accounts.saveRule">保存切号规则</button>
-            <span id="auto-switch-last-note" class="quota-muted-note"></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 本机消耗与共享账号额度变化对照 -->
-      <div class="quota-subsec-header" style="margin-top:10px">
-        <span class="quota-subsec-title" data-i18n="quota.compareTitle">📊 本机消耗与共享账号额度对照</span>
-      </div>
-      <div id="quota-compare-note" class="quota-muted-note" style="margin-bottom:5px" data-i18n="quota.compareDisclaimer">
-        按同一账号与共享池统计。账面百分点下降受多设备使用、取整、重置与滚动恢复影响，不等同于本机单独消耗占比。
-      </div>
-      <div id="quota-compare-list" class="quota-compare-list"></div>
-
-      <!-- 模型 Prompt Cache 保活协议与保障 -->
-      <div class="quota-subsec-header" style="margin-top:10px">
-        <span class="quota-subsec-title" data-i18n="keepalive.title">🧊 模型缓存保活状态与协议核查</span>
-        <span id="keepalive-status-pill" class="key-pill pill-muted" data-i18n="accounts.keepaliveOff">默认关闭</span>
-      </div>
-      <div class="quota-subcard">
-        <div id="keepalive-protocol-summary" class="quota-muted-note"></div>
-        <div id="keepalive-experiment-summary" class="quota-muted-note" style="margin-top:4px"></div>
-        <div class="quota-subcard-row" style="margin-top:6px">
-          <span id="keepalive-runtime-note" class="quota-muted-note"></span>
-          <button id="btn-keepalive-stop" class="switch-pill-btn" type="button" hidden data-i18n="keepalive.stopBtn">立即停止保活</button>
-        </div>
-      </div>
+<!-- 弹出式面板 4: / 指令与 E:\\agent_skills 技能中心 (#panel-commands, 480px) -->
+<section id="panel-commands" class="ag-panel ag-panel-flex" hidden aria-label="/ 指令与技能中心">
+  <div class="panel-header-bar">
+    <div class="panel-title">
+      <span class="panel-title-text" style="font-size:13px;font-weight:600;color:var(--ag-text-primary)">⌘ / 指令与技能中心</span>
+    </div>
+    <div class="panel-header-actions">
+      <button id="btn-refresh-commands" class="panel-icon-btn" type="button" aria-label="重新扫描本地指令与技能" title="重新扫描本地指令与 E:\\agent_skills">↻</button>
+      <button id="close-commands" class="panel-icon-btn" type="button" aria-label="收起指令面板">×</button>
     </div>
   </div>
 
-  <!-- 移除账号二次确认模态弹窗（移除插件凭证与切号候选，保留历史本地用量与归属） -->
-  <div id="account-remove-modal" class="ag-modal-overlay" hidden role="dialog" aria-modal="true"
-    aria-labelledby="modal-account-remove-title">
-    <div class="ag-modal-card">
-      <div id="modal-account-remove-title" class="ag-modal-title" data-i18n="accounts.removeModal.title">移除账号</div>
-      <div id="modal-account-remove-text" class="ag-modal-body"></div>
-      <div id="modal-account-remove-feedback" class="ag-modal-feedback" hidden></div>
-      <div class="ag-modal-actions">
-        <button id="btn-modal-account-remove-cancel" class="unlock-btn unlock-btn-secondary" type="button"
-          data-i18n="accounts.removeModal.cancel">取消</button>
-        <button id="btn-modal-account-remove-confirm" class="unlock-btn unlock-btn-danger" type="button"
-          data-i18n="accounts.removeModal.confirm">确认移除</button>
-      </div>
+  <div id="view-commands" class="cmd-hub-body">
+    <div id="cmd-hub-stats" class="cmd-hub-stats">正在加载本地指令与技能库…</div>
+    <div class="cmd-search-wrap">
+      <input id="cmd-hub-search" class="cmd-search-input" type="search" placeholder="搜索 /compact、context7、archify、graphify、压缩、论文…" autocomplete="off" />
     </div>
+    <div id="cmd-hub-tabs" class="cmd-hub-tabs" role="tablist">
+      <button type="button" class="cmd-tab-btn active" data-cmd-tab="favorites">⭐ 常用</button>
+      <button type="button" class="cmd-tab-btn" data-cmd-tab="all">全部</button>
+      <button type="button" class="cmd-tab-btn" data-cmd-tab="builtin">官方 /</button>
+      <button type="button" class="cmd-tab-btn" data-cmd-tab="installed">插件与全局</button>
+      <button type="button" class="cmd-tab-btn" data-cmd-tab="agent_skills">agent_skills</button>
+    </div>
+    <div id="cmd-subcat-bar" class="cmd-subcat-bar" hidden></div>
+    <div id="cmd-hub-toast" class="cmd-hub-toast" hidden role="status" aria-live="polite"></div>
+    <div id="cmd-hub-list" class="cmd-hub-list"></div>
   </div>
 </section>`;
 
@@ -10640,13 +10711,32 @@ function formatPeriodCalendarLabel(currentPeriod) {
   let cachedMeasuredAvailAt = 0;
   let cachedMeasuredWinWidth = 0;
 
+  function findComposerFooterRightGroup() {
+    try {
+      if (typeof document.querySelectorAll !== 'function') return null;
+      const footers = Array.from(document.querySelectorAll('.agy-composer-footer'));
+      const footer = footers.find(f => {
+        const r = f.getBoundingClientRect?.();
+        return r && r.width > 100 && r.height > 0;
+      });
+      if (!footer) return null;
+      const rightGroup = footer.lastElementChild;
+      if (rightGroup && rightGroup !== footer.firstElementChild) {
+        return { footer, rightGroup };
+      }
+      return { footer, rightGroup: footer };
+    } catch {
+      return null;
+    }
+  }
+
   function ensureHostDocked() {
     if (state.disposed) return;
     if (globalThis.__AGContextMeterActiveHost && globalThis.__AGContextMeterActiveHost !== host) {
       earlyForceDispose();
       return;
     }
-    // 热路径短路：宿主已稳固停靠在预期标题栏内且尺寸未标脏时，跳过 DOM 遍历与强制布局查询
+    // 热路径短路：宿主已稳固停靠在预期容器内且尺寸未标脏时，跳过 DOM 遍历与强制布局查询
     if (
       !layoutMeasurementDirty
       && host.isConnected
@@ -10659,6 +10749,37 @@ function formatPeriodCalendarLabel(currentPeriod) {
       return;
     }
     syncWindowControlsOverlay();
+    // 优先停靠至底部对话框工具栏 (.agy-composer-footer 右侧组左侧)
+    const composer = findComposerFooterRightGroup();
+    if (composer) {
+      const { footer, rightGroup } = composer;
+      if (host.parentElement !== rightGroup) {
+        if (rightGroup.firstChild) {
+          rightGroup.insertBefore(host, rightGroup.firstChild);
+        } else {
+          rightGroup.appendChild(host);
+        }
+      }
+      host.setAttribute('data-dock', 'flow');
+      try {
+        host.style.removeProperty?.('right');
+        host.style.removeProperty?.('top');
+      } catch { }
+      host.style.right = '';
+      host.style.top = '';
+      if (observedTitlebar !== footer) {
+        observedTitlebar = footer;
+        try {
+          if (resizeObserver) {
+            resizeObserver.disconnect();
+            resizeObserver.observe(footer);
+            if (document.body) resizeObserver.observe(document.body);
+          }
+        } catch { }
+      }
+      updateResponsiveLayout(layoutMeasurementDirty);
+      return;
+    }
     const titlebar = findHostTitlebar();
     if (titlebar) {
       // 自愈保护：若主对话区（div.flex[style*="min-width"]）的 inline flex-grow 被意外清空，立即恢复为 1，绝不覆写其他分栏属性
@@ -10805,6 +10926,25 @@ function formatPeriodCalendarLabel(currentPeriod) {
       ) {
         return cachedMeasuredAvailWidth;
       }
+      const composer = findComposerFooterRightGroup();
+      if (composer?.footer?.getBoundingClientRect) {
+        const fRect = composer.footer.getBoundingClientRect();
+        if (fRect.width > 0) {
+          const leftW = composer.footer.firstElementChild?.getBoundingClientRect?.().width || 180;
+          let rightBtnsW = 0;
+          for (const child of (composer.rightGroup?.children || [])) {
+            if (child !== host && child.getBoundingClientRect) {
+              rightBtnsW += child.getBoundingClientRect().width;
+            }
+          }
+          const avail = fRect.width - leftW - rightBtnsW - 16;
+          cachedMeasuredAvailWidth = avail;
+          cachedMeasuredAvailAt = now;
+          cachedMeasuredWinWidth = curWinW;
+          layoutMeasurementDirty = false;
+          return avail;
+        }
+      }
       const titlebar = findHostTitlebar();
       if (titlebar?.getBoundingClientRect) {
         const tbRect = titlebar.getBoundingClientRect();
@@ -10914,6 +11054,7 @@ function formatPeriodCalendarLabel(currentPeriod) {
       syncSpeedBadgeText();
     }
     renderSessionCost();
+    try { renderKvCacheAndBreakdown(); } catch { }
   }
 
   function updateResponsiveLayout(forceMeasure = false) {
@@ -11050,22 +11191,39 @@ function formatPeriodCalendarLabel(currentPeriod) {
         left = Math.max(snapToDevicePixel(minLeft), left);
 
         const maxWidthPx = Math.max(260, vw - left - 12);
-        const maxHeightPx = Math.max(160, vh - top - 16);
-        const geomKey = `${top}|${left}|${maxWidthPx}|${maxHeightPx}|${isCompact ? 1 : 0}|${dpr}`;
-        if (panelEl._lastPlacedGeomKey === geomKey) return;
-        panelEl._lastPlacedGeomKey = geomKey;
-
-        panelEl.style.top = `${top}px`;
-        panelEl.style.left = `${left}px`;
-        panelEl.style.right = 'auto';
-        panelEl.style.maxWidth = `${maxWidthPx}px`;
-        panelEl.style.maxHeight = `${maxHeightPx}px`;
-        panelEl.style.transformOrigin = 'top right';
+        const openUpward = bRect.top > vh * 0.5;
+        if (openUpward) {
+          const bottomPx = snapToDevicePixel(Math.max(12, vh - bRect.top + 8));
+          const maxHeightPx = Math.max(220, Math.round(bRect.top - 24));
+          const geomKey = `up|${bottomPx}|${left}|${maxWidthPx}|${maxHeightPx}|${isCompact ? 1 : 0}|${dpr}`;
+          if (panelEl._lastPlacedGeomKey === geomKey) return;
+          panelEl._lastPlacedGeomKey = geomKey;
+          panelEl.style.top = 'auto';
+          panelEl.style.bottom = `${bottomPx}px`;
+          panelEl.style.left = `${left}px`;
+          panelEl.style.right = 'auto';
+          panelEl.style.maxWidth = `${maxWidthPx}px`;
+          panelEl.style.maxHeight = `${maxHeightPx}px`;
+          panelEl.style.transformOrigin = 'bottom right';
+        } else {
+          const maxHeightPx = Math.max(160, vh - top - 16);
+          const geomKey = `dn|${top}|${left}|${maxWidthPx}|${maxHeightPx}|${isCompact ? 1 : 0}|${dpr}`;
+          if (panelEl._lastPlacedGeomKey === geomKey) return;
+          panelEl._lastPlacedGeomKey = geomKey;
+          panelEl.style.bottom = 'auto';
+          panelEl.style.top = `${top}px`;
+          panelEl.style.left = `${left}px`;
+          panelEl.style.right = 'auto';
+          panelEl.style.maxWidth = `${maxWidthPx}px`;
+          panelEl.style.maxHeight = `${maxHeightPx}px`;
+          panelEl.style.transformOrigin = 'top right';
+        }
       };
 
       placePanel(el('panel'), 472, el(activeContextAnchorId) || el('badge'));
       placePanel(el('panel-quota'), 460, el(activeQuotaAnchorId) || el('badge-quota'));
       placePanel(el('panel-tokens'), 730, el(activeTokensAnchorId) || el('badge-tokens'));
+      placePanel(el('panel-commands'), 480, el('badge-commands'));
       placePanel(el('overflow-menu'), 220, el('badge-overflow'));
       positionColorPickerPopover();
     } catch { }
@@ -11097,7 +11255,12 @@ function formatPeriodCalendarLabel(currentPeriod) {
   function flushHostDomMutationCheck() {
     domMutationThrottleTimer = null;
     if (state.disposed) return;
-    if (!host.isConnected || host.getAttribute('data-dock') !== 'flow' || !findHostTitlebar()?.contains?.(host)) {
+    const activeFooter = findComposerFooterRightGroup()?.footer;
+    const properlyDocked = activeFooter
+      ? activeFooter.contains(host)
+      : Boolean(findHostTitlebar()?.contains?.(host));
+    if (!host.isConnected || host.getAttribute('data-dock') !== 'flow' || !properlyDocked) {
+      layoutMeasurementDirty = true;
       scheduleLayoutSync();
     }
     scheduleHostModelSync();
@@ -11235,18 +11398,24 @@ function formatPeriodCalendarLabel(currentPeriod) {
   }
 
   function isAnyPanelOpen() {
-    return !el('panel').hidden || !el('panel-tokens').hidden || !el('panel-quota')?.hidden;
+    return !el('panel').hidden || !el('panel-tokens').hidden || !el('panel-quota')?.hidden || !el('panel-commands')?.hidden;
+  }
+
+  function closeAllPanels() {
+    showPanel(null);
   }
 
   function showPanel(target) {
     const pContext = el('panel');
     const pTokens = el('panel-tokens');
     const pQuota = el('panel-quota');
+    const pCommands = el('panel-commands');
     const pOverflow = el('overflow-menu');
     const bContext = el('badge');
     const bSpeed = el('badge-speed');
     const bTokens = el('badge-tokens');
     const bQuota = el('badge-quota');
+    const bCommands = el('badge-commands');
     const bOverflow = el('badge-overflow');
 
     hideUpdatePopover();
@@ -11255,6 +11424,28 @@ function formatPeriodCalendarLabel(currentPeriod) {
     if (target !== 'quota' && typeof clearQuotaBarChargeAnimations === 'function') {
       clearQuotaBarChargeAnimations();
     }
+
+    if (target === 'commands') {
+      hideContextTooltip();
+      closeColorPicker();
+      setPlanDetailExpanded(false, { skipReposition: true });
+      pContext.hidden = true;
+      pTokens.hidden = true;
+      if (pQuota) pQuota.hidden = true;
+      bContext.setAttribute('aria-expanded', 'false');
+      bSpeed?.setAttribute('aria-expanded', 'false');
+      bTokens.setAttribute('aria-expanded', 'false');
+      bQuota?.setAttribute('aria-expanded', 'false');
+      bCommands?.setAttribute('aria-expanded', 'true');
+      syncHostStackingElevation(true);
+      positionFloatingPanels();
+      if (pCommands) pCommands.hidden = false;
+      if (typeof CommandsHubController !== 'undefined') void CommandsHubController.refresh(false);
+      setTimeout(() => { try { el('cmd-hub-search')?.focus(); } catch {} }, 40);
+      return;
+    }
+    if (pCommands) pCommands.hidden = true;
+    bCommands?.setAttribute('aria-expanded', 'false');
 
     if (target === 'tokens') {
       hideContextTooltip();
@@ -18093,6 +18284,9 @@ function closeAllDropdowns(exceptWrap = null) {
   }
 
   async function refreshUnlockStatus() {
+    return null;
+  }
+  async function _removedRefreshUnlockStatus() {
     const thisSeq = ++unlockReqSeq;
     try {
       const currentObservedBudget = (state.latest?.budget && state.latest.budget > 0)
@@ -19526,7 +19720,10 @@ function closeAllDropdowns(exceptWrap = null) {
     renderEnhanceSectionUI();
   }
 
-  async function refreshEnhanceStatus(syncDrafts = true, { forceSyncDrafts = false, forceRefresh = false } = {}) {
+  async function refreshEnhanceStatus() {
+    return null;
+  }
+  async function _removedRefreshEnhanceStatus(syncDrafts = true, { forceSyncDrafts = false, forceRefresh = false } = {}) {
     const seq = ++enhanceStatusReqSeq;
     try {
       const res = await invokeEnhanceApi('status', forceRefresh ? { forceRefresh: true } : {});
@@ -20376,45 +20573,39 @@ function closeAllDropdowns(exceptWrap = null) {
   }
 
   async function setClientLanguageTarget(wantChinese) {
-    if (Boolean(wantChinese) === Boolean(currentChineseEnabled)) return;
-    if (btnToggleChineseModule) {
-      btnToggleChineseModule.disabled = true;
-      btnToggleChineseModule.textContent = t('mod.processing');
-    }
+    const targetZh = Boolean(wantChinese);
+    const fbEl = el('client-lang-live-feedback');
     try {
-      await yieldForSettingsPaint();
-      const res = await invokeModulesApi('toggle', 'chinese', Boolean(wantChinese), {
-        language: wantChinese ? 'zh-CN' : 'en',
-        brandTitle: currentBrandTitle
-      });
-      if (!res || !res.ok) {
-        const errPayload = res;
-        showEnhanceResultBox(false, () => resolveSettingsErrorText(errPayload, 'mod.zh.toggleFail'));
-      } else {
-        needsRestartAfterApply = Boolean(res.restartRequired);
-        renderClientStatusBar();
-        if (res.restartRequired) {
-          showEnhanceResultBox(
-            true,
-            () => t(wantChinese ? 'mod.zh.savedEnableRestart' : 'mod.zh.savedDisableRestart'),
-            { needsHostRestart: true }
-          );
+      if (typeof HostI18nController !== 'undefined') {
+        if (targetZh) {
+          const r = await HostI18nController.enable();
+          if (!r || !r.ok) {
+            if (fbEl) fbEl.textContent = `开启汉化失败：${r?.error || '未能加载词典'}`;
+            return;
+          }
         } else {
-          showEnhanceResultBox(
-            true,
-            () => translateBackendText(res.message || '已同步回当前运行状态，无需重启'),
-            { needsHostRestart: false }
-          );
+          HostI18nController.disable();
         }
       }
-      await refreshModulesDisplay();
-    } catch (e) {
-      showEnhanceResultBox(false, () => `${t('mod.zh.toggleFail')}: ${resolveSettingsErrorText(e, 'msg.unknownErr')}`);
-    } finally {
-      if (btnToggleChineseModule) {
-        btnToggleChineseModule.disabled = false;
-        btnToggleChineseModule.textContent = currentChineseEnabled ? t('mod.zh.btnDisable') : t('mod.zh.btnEnable');
+      currentChineseEnabled = targetZh;
+      syncClientLanguageButtons();
+      if (chineseBadge) {
+        chineseBadge.textContent = targetZh ? '已开启 (实时)' : '英文原文';
+        chineseBadge.className = `key-pill ${targetZh ? 'pill-ok' : 'pill-muted'}`;
       }
+      const res = await invokeModulesApi('toggle', 'chinese', targetZh, {
+        language: targetZh ? 'zh-CN' : 'en'
+      });
+      if (fbEl) {
+        fbEl.textContent = targetZh
+          ? `✅ 已实时切换为客户端简体中文（v2.33.0+ ${HostI18nController?.getMeta?.()?.exactCount || 4264}+ 词条，免重启生效）。`
+          : '✅ 已实时还原为官方英文原版界面（免重启生效）。';
+      }
+      if (!res || !res.ok) {
+        try { localStorage?.setItem('ag_personal_host_i18n_zh', targetZh ? '1' : '0'); } catch {}
+      }
+    } catch (e) {
+      if (fbEl) fbEl.textContent = `切换异常：${e?.message || e}`;
     }
   }
 
@@ -22116,7 +22307,7 @@ function closeAllDropdowns(exceptWrap = null) {
   }
 
   function openGithubRepo(pathSuffix = '') {
-    const url = 'https://github.com/elviscjn-cjn/antigravity-context-viewer' + pathSuffix;
+    const url = 'https://github.com/Serendipity-min/antigravity-context-viewer' + pathSuffix;
     if (typeof window !== 'undefined' && typeof window.contextMeterAPI?.openExternal === 'function') {
       window.contextMeterAPI.openExternal(url);
     } else {
@@ -23852,6 +24043,1249 @@ var cumLockedKey = null;
       isOverflow: false
     };
   }
+// ============================================================================
+  // Module: Reversible Live-Toggle Host Chinese Localization (v2.33.0+)
+  // Sandbox-safe: dictionary loaded via Main-Process IPC (meter-i18n-host.js).
+  // Non-destructive: original English text/attributes stored in WeakMaps so
+  // toggling OFF restores English instantaneously without restarting Antigravity.
+  // ============================================================================
+  const HostI18nController = (() => {
+    let enabled = false;
+    let loading = false;
+    let pack = null;
+    let exactMap = null;
+    let lowerMap = null;
+    let coreWordsMap = null;
+    let compiledPatterns = [];
+    let stringCache = new Map();
+    let observer = null;
+    let idleTimer = null;
+    let flushScheduled = false;
+    let typingUntil = 0;
+    let listenersBound = false;
+
+    const MAX_CACHE = 8000;
+    const origTextMap = new WeakMap();
+    const origAttrMap = new WeakMap();
+    const trackedTexts = new Set();
+    const trackedElements = new Set();
+    const pendingNodes = new Set();
+
+    const SKIP_TAGS = new Set([
+      'SCRIPT', 'STYLE', 'NOSCRIPT', 'KBD', 'SAMP', 'VAR', 'SVG', 'PATH',
+      'MATH', 'CODE', 'PRE', 'CANVAS', 'IFRAME', 'VIDEO', 'AUDIO', 'MJX-CONTAINER'
+    ]);
+
+    const PROTECTED_CLOSEST_SELECTOR = [
+      '#ag-context-meter',
+      '[data-testid="user-message-content"]',
+      '[data-lexical-editor="true"]',
+      '[contenteditable="true"]',
+      '[role="textbox"]',
+      '[data-language]',
+      '[data-code]',
+      '[data-line]',
+      '[data-line-number]',
+      '[role="code"]',
+      '[data-testid="model-selector-trigger"]',
+      '.group\\/user-input-step',
+      '.user-message',
+      '.thought-content',
+      '.thinking-content',
+      '.thought-box',
+      '.katex',
+      '.katex-display',
+      '.katex-html',
+      '.mjx-container',
+      '.monaco-editor',
+      '.editor-instance',
+      '.xterm',
+      '.hljs',
+      '.code-block',
+      '.code-line',
+      '.view-line',
+      '.markdown',
+      '.prose'
+    ].join(',');
+
+    const MENTION_ALLOWLIST = new Set([
+      'Rules', 'Conversation', 'PDF Document', 'MCP Resource',
+      'Browser Page', 'Browser Text', 'Directory', 'Git Commit', 'Git Diff'
+    ]);
+
+    function isInsideThinkingBody(el) {
+      try {
+        let cur = el;
+        for (let depth = 0; cur && depth < 8; depth++) {
+          const parent = cur.parentElement;
+          if (!parent) break;
+          const trig = parent.querySelector?.(':scope > button[data-testid="thinking-collapsible-trigger"]');
+          if (trig && cur !== trig && !trig.contains(cur)) return true;
+          cur = parent;
+        }
+      } catch {}
+      return false;
+    }
+
+    function shouldSkipElement(el) {
+      if (!el || el.nodeType !== 1) return true;
+      if (SKIP_TAGS.has(el.tagName)) return true;
+      if (el.isContentEditable) return true;
+      try {
+        if (el.closest && el.closest(PROTECTED_CLOSEST_SELECTOR)) {
+          // Allow thinking toggle button itself and queued decorators outside user text
+          if (el.closest('button[data-testid="thinking-collapsible-trigger"]')) return false;
+          return true;
+        }
+      } catch {}
+      if (isInsideThinkingBody(el)) return true;
+      // Protect /slash commands and @file paths in mention popups unless it's a known section header
+      try {
+        const menuLabel = el.closest?.('[data-testid="menu-option-label"]');
+        if (menuLabel) {
+          const txt = (menuLabel.textContent || '').trim();
+          if (!MENTION_ALLOWLIST.has(txt)) return true;
+        }
+      } catch {}
+      return false;
+    }
+
+    function isNewBadgeElement(el) {
+      if (!el || el.nodeType !== 1) return false;
+      if (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button') return false;
+      if (el.closest?.('[data-testid="sidecar-new-button"]')) return false;
+      const cls = String(el.className || '');
+      return cls.includes('rounded-full') || (cls.includes('bg-secondary') && cls.includes('rounded'));
+    }
+
+    function buildLookupStructures(rawPack) {
+      exactMap = new Map();
+      lowerMap = new Map();
+      coreWordsMap = new Map();
+      compiledPatterns = [];
+      stringCache.clear();
+
+      if (rawPack && rawPack.exact && typeof rawPack.exact === 'object') {
+        for (const [k, v] of Object.entries(rawPack.exact)) {
+          if (typeof v !== 'string' || !k) continue;
+          exactMap.set(k, v);
+          const lk = k.toLowerCase();
+          if (!lowerMap.has(lk)) lowerMap.set(lk, v);
+        }
+      }
+      if (rawPack && rawPack.coreWords && typeof rawPack.coreWords === 'object') {
+        for (const [k, v] of Object.entries(rawPack.coreWords)) {
+          if (typeof v === 'string' && k) coreWordsMap.set(k.toLowerCase(), v);
+        }
+      }
+      if (rawPack && Array.isArray(rawPack.patterns)) {
+        for (const item of rawPack.patterns) {
+          if (!item || typeof item.regex !== 'string' || typeof item.replacement !== 'string') continue;
+          try {
+            compiledPatterns.push({ re: new RegExp(item.regex), rep: item.replacement });
+          } catch {}
+        }
+      }
+    }
+
+    function translateText(raw, parentEl) {
+      if (!raw || typeof raw !== 'string' || !exactMap) return null;
+      const trimmed = raw.trim();
+      if (!trimmed || trimmed.length > 400) return null;
+      // Fast bailout: no ASCII letters -> already localized or numeric/punctuation
+      if (!/[A-Za-z]/.test(trimmed)) return null;
+      // Protect timestamps (e.g. 24m, 2h, 3d), file paths, URLs, slash commands, model IDs
+      if (/^(?:\/[a-z0-9_-]+|https?:\/\/|[a-zA-Z]:\\|\/[\w.-]+\/|\d+(?:ms|s|m|h|d|mo|y)$)/i.test(trimmed)) return null;
+      if (/\.(?:js|ts|tsx|jsx|json|md|py|css|html|db|pb|asar|exe|sh|bat)$/i.test(trimmed)) return null;
+
+      // Special context-sensitive badge "New" vs button "New"
+      if (trimmed === 'New' && isNewBadgeElement(parentEl)) {
+        return raw.replace('New', '新');
+      }
+      if (trimmed === 'NEW') {
+        return raw.replace('NEW', '新');
+      }
+
+      const norm = trimmed.replace(/\s+/g, ' ');
+      const cached = stringCache.get(norm);
+      if (cached !== undefined) {
+        if (cached === null) return null;
+        const idx = raw.indexOf(trimmed);
+        return idx >= 0 ? raw.slice(0, idx) + cached + raw.slice(idx + trimmed.length) : cached;
+      }
+
+      let translated = null;
+      if (exactMap.has(norm)) {
+        translated = exactMap.get(norm);
+      } else if (norm.length <= 64 && lowerMap.has(norm.toLowerCase())) {
+        translated = lowerMap.get(norm.toLowerCase());
+      } else {
+        // Strip single trailing colon/ellipsis and retry exact lookup
+        const punctMatch = norm.match(/^(.+?)([:：…]+|\.\.\.)$/);
+        if (punctMatch) {
+          const baseHit = exactMap.get(punctMatch[1]) || (punctMatch[1].length <= 48 ? lowerMap.get(punctMatch[1].toLowerCase()) : null);
+          if (baseHit) {
+            translated = baseHit + (punctMatch[2] === ':' ? '：' : punctMatch[2]);
+          }
+        }
+        if (!translated && compiledPatterns.length) {
+          for (let i = 0; i < compiledPatterns.length; i++) {
+            const p = compiledPatterns[i];
+            if (p.re.test(norm)) {
+              const cand = norm.replace(p.re, p.rep);
+              if (cand && cand !== norm) {
+                translated = cand;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      if (stringCache.size >= MAX_CACHE) {
+        let drop = 0;
+        for (const k of stringCache.keys()) {
+          stringCache.delete(k);
+          if (++drop >= 1000) break;
+        }
+      }
+      stringCache.set(norm, translated);
+      if (!translated) return null;
+      const idx = raw.indexOf(trimmed);
+      return idx >= 0 ? raw.slice(0, idx) + translated + raw.slice(idx + trimmed.length) : translated;
+    }
+
+    function translateTextNode(node) {
+      if (!enabled || !node || node.nodeType !== 3) return;
+      const parent = node.parentElement;
+      if (!parent || shouldSkipElement(parent)) return;
+      const cur = node.nodeValue;
+      if (!cur || !/[A-Za-z]/.test(cur)) return;
+      const out = translateText(cur, parent);
+      if (out && out !== cur) {
+        if (!origTextMap.has(node)) {
+          origTextMap.set(node, cur);
+          trackedTexts.add(node);
+        }
+        node.nodeValue = out;
+      }
+    }
+
+    function translateElementAttrs(el) {
+      if (!enabled || !el || el.nodeType !== 1) return;
+      const isInput = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+      if (isInput) {
+        if (el.parentElement && shouldSkipElement(el.parentElement)) return;
+      } else if (shouldSkipElement(el)) {
+        return;
+      }
+      const attrs = isInput ? ['placeholder', 'title', 'aria-label'] : ['title', 'aria-label', 'placeholder'];
+      for (const attr of attrs) {
+        const val = el.getAttribute?.(attr);
+        if (!val || !/[A-Za-z]/.test(val)) continue;
+        const out = translateText(val, el);
+        if (out && out !== val) {
+          let rec = origAttrMap.get(el);
+          if (!rec) {
+            rec = Object.create(null);
+            origAttrMap.set(el, rec);
+            trackedElements.add(el);
+          }
+          if (!(attr in rec)) rec[attr] = val;
+          el.setAttribute(attr, out);
+        }
+      }
+    }
+
+    function walkAndTranslate(root) {
+      if (!enabled || !root) return;
+      if (root.nodeType === 3) {
+        translateTextNode(root);
+        return;
+      }
+      if (root.nodeType !== 1 && root.nodeType !== 11) return;
+      if (root.nodeType === 1) {
+        if (root.tagName === 'INPUT' || root.tagName === 'TEXTAREA') {
+          translateElementAttrs(root);
+          return;
+        }
+        if (shouldSkipElement(root)) return;
+        translateElementAttrs(root);
+      }
+      try {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+          acceptNode(node) {
+            if (node.nodeType === 1) {
+              if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') return NodeFilter.FILTER_ACCEPT;
+              if (shouldSkipElement(node)) return NodeFilter.FILTER_REJECT;
+              return NodeFilter.FILTER_ACCEPT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        });
+        let cur = walker.nextNode();
+        let count = 0;
+        while (cur && count < 4000) {
+          count++;
+          if (cur.nodeType === 3) translateTextNode(cur);
+          else if (cur.nodeType === 1) translateElementAttrs(cur);
+          cur = walker.nextNode();
+        }
+      } catch {}
+    }
+
+    function flushPending() {
+      flushScheduled = false;
+      if (!enabled || state.disposed) {
+        pendingNodes.clear();
+        return;
+      }
+      // Anti-Thrashing Typing Guard: defer DOM translation while user is actively typing
+      const now = Date.now();
+      if (now < typingUntil) {
+        flushScheduled = true;
+        setTimeout(flushPending, Math.max(80, typingUntil - now + 20));
+        return;
+      }
+      const batch = Array.from(pendingNodes).slice(0, 120);
+      for (const n of batch) pendingNodes.delete(n);
+      if (observer) observer.disconnect();
+      try {
+        for (const n of batch) {
+          if (n && n.isConnected !== false) walkAndTranslate(n);
+        }
+      } finally {
+        attachObserver();
+      }
+      if (pendingNodes.size > 0) scheduleFlush();
+    }
+
+    function scheduleFlush() {
+      if (flushScheduled || !enabled) return;
+      flushScheduled = true;
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(flushPending);
+      } else {
+        setTimeout(flushPending, 32);
+      }
+    }
+
+    function attachObserver() {
+      if (!enabled || state.disposed || typeof MutationObserver === 'undefined' || !document.body) return;
+      if (!observer) {
+        observer = new MutationObserver((mutations) => {
+          if (!enabled) return;
+          for (let i = 0; i < mutations.length; i++) {
+            const m = mutations[i];
+            if (m.type === 'characterData' && m.target) {
+              if (pendingNodes.size < 400) pendingNodes.add(m.target);
+            } else if (m.type === 'childList' && m.addedNodes?.length) {
+              for (let j = 0; j < m.addedNodes.length; j++) {
+                const added = m.addedNodes[j];
+                if (pendingNodes.size < 400) pendingNodes.add(added);
+              }
+            }
+          }
+          if (pendingNodes.size > 0) scheduleFlush();
+        });
+      }
+      try {
+        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      } catch {}
+    }
+
+    const onTypingActivity = (e) => {
+      const t = e?.target;
+      if (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.closest?.('[data-lexical-editor="true"]'))) {
+        typingUntil = Date.now() + 260;
+      }
+    };
+
+    function bindTypingGuard() {
+      if (listenersBound || typeof document === 'undefined') return;
+      listenersBound = true;
+      document.addEventListener('keydown', onTypingActivity, true);
+      document.addEventListener('input', onTypingActivity, true);
+    }
+
+    function unbindTypingGuard() {
+      if (!listenersBound || typeof document === 'undefined') return;
+      listenersBound = false;
+      document.removeEventListener('keydown', onTypingActivity, true);
+      document.removeEventListener('input', onTypingActivity, true);
+    }
+
+    async function ensureDictionaryLoaded(force = false) {
+      if (pack && !force) return pack;
+      if (loading) return pack;
+      loading = true;
+      try {
+        let res = null;
+        if (window.contextMeterAPI?.getHostI18nPack) {
+          res = await window.contextMeterAPI.getHostI18nPack({ force });
+        } else {
+          const live = getLiveBridge();
+          if (live) {
+            const r = await fetch(`http://127.0.0.1:${live.port}/get-host-i18n-pack`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-AG-Context-Token': live.token },
+              body: JSON.stringify({ force })
+            });
+            res = await r.json();
+          }
+        }
+        if (res && res.ok && res.exact) {
+          pack = res;
+          buildLookupStructures(res);
+        }
+      } catch {} finally {
+        loading = false;
+      }
+      return pack;
+    }
+
+    async function enable() {
+      const loaded = await ensureDictionaryLoaded(false);
+      if (!loaded) return { ok: false, error: '未加载到汉化词典包' };
+      enabled = true;
+      bindTypingGuard();
+      if (observer) observer.disconnect();
+      try {
+        walkAndTranslate(document.body);
+      } finally {
+        attachObserver();
+      }
+      if (!idleTimer) {
+        idleTimer = setInterval(() => {
+          if (!enabled || state.disposed || Date.now() < typingUntil) return;
+          if (observer) observer.disconnect();
+          try { walkAndTranslate(document.body); } finally { attachObserver(); }
+        }, 12000);
+      }
+      return { ok: true, enabled: true, meta: pack.meta };
+    }
+
+    function disable() {
+      enabled = false;
+      pendingNodes.clear();
+      if (observer) {
+        try { observer.disconnect(); } catch {}
+      }
+      if (idleTimer) {
+        clearInterval(idleTimer);
+        idleTimer = null;
+      }
+      unbindTypingGuard();
+      // Restore all mutated text nodes and attributes back to exact original English
+      for (const node of trackedTexts) {
+        try {
+          if (node && node.isConnected && origTextMap.has(node)) {
+            node.nodeValue = origTextMap.get(node);
+          }
+          origTextMap.delete(node);
+        } catch {}
+      }
+      trackedTexts.clear();
+      for (const el of trackedElements) {
+        try {
+          const rec = origAttrMap.get(el);
+          if (el && el.isConnected && rec) {
+            for (const [attr, origVal] of Object.entries(rec)) {
+              el.setAttribute(attr, origVal);
+            }
+          }
+          origAttrMap.delete(el);
+        } catch {}
+      }
+      trackedElements.clear();
+      return { ok: true, enabled: false };
+    }
+
+    function dispose() {
+      if (observer) {
+        try { observer.disconnect(); } catch {}
+        observer = null;
+      }
+      if (idleTimer) {
+        clearInterval(idleTimer);
+        idleTimer = null;
+      }
+      unbindTypingGuard();
+      pendingNodes.clear();
+    }
+
+    return {
+      enable,
+      disable,
+      dispose,
+      isEnabled: () => enabled,
+      getMeta: () => pack?.meta || null
+    };
+  })();
+// ============================================================================
+  // Module: Slash Command & E:\agent_skills Hub (src/renderer/commands.js)
+  // ============================================================================
+  const CommandsHubController = (() => {
+    let loaded = false;
+    let loading = false;
+    let payload = null;
+    let activeTab = 'favorites'; // 'favorites' | 'all' | 'builtin' | 'installed' | 'agent_skills'
+    let activeSubCat = 'ALL';
+    let searchQuery = '';
+    let expandedId = null;
+    let toastTimer = null;
+
+    function escapeHtmlCmd(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showToast(msg, isError = false) {
+      const t = el('cmd-hub-toast');
+      if (!t) return;
+      if (toastTimer) clearTimeout(toastTimer);
+      t.textContent = msg;
+      t.className = `cmd-hub-toast ${isError ? 'is-error' : 'is-ok'}`;
+      t.hidden = false;
+      toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+    }
+
+    async function callCommandsApi(method, arg1, arg2) {
+      const api = window.contextMeterAPI;
+      if (method === 'list' && api?.listCommands) return await api.listCommands(arg1 || {});
+      if (method === 'savePrefs' && api?.saveCommandPrefs) return await api.saveCommandPrefs(arg1 || {});
+      if (method === 'pin' && api?.toggleNativeSkillPin) return await api.toggleNativeSkillPin(arg1, arg2);
+      const live = getLiveBridge();
+      if (live) {
+        const routeMap = { list: '/list-commands', savePrefs: '/save-command-prefs', pin: '/toggle-native-skill-pin' };
+        const body = method === 'pin' ? { dir: arg1, pin: Boolean(arg2) } : (arg1 || {});
+        const r = await fetch(`http://127.0.0.1:${live.port}${routeMap[method]}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-AG-Context-Token': live.token },
+          body: JSON.stringify(body)
+        });
+        return await r.json();
+      }
+      return { ok: false, error: '命令中心后台通道未就绪' };
+    }
+
+    /**
+     * Find active Antigravity chat composer input outside #ag-context-meter and insert text safely
+     * (NEVER auto-sends; falls back to clipboard copy if editor DOM changes).
+     */
+    function insertCommandIntoComposer(text) {
+      if (!text) return false;
+      let target = null;
+      try {
+        const candidates = Array.from(document.querySelectorAll(
+          '[data-lexical-editor="true"], [contenteditable="true"][role="textbox"], div[contenteditable="true"], textarea'
+        )).filter(node => {
+          if (!node || (typeof node.closest === 'function' && node.closest('#ag-context-meter'))) return false;
+          const r = node.getBoundingClientRect?.();
+          return r && r.width > 100 && r.height >= 16;
+        });
+        // Prefer the visible editable element closest to the bottom of the viewport (chat composer)
+        candidates.sort((a, b) => (b.getBoundingClientRect().bottom || 0) - (a.getBoundingClientRect().bottom || 0));
+        target = candidates[0] || null;
+      } catch {}
+
+      if (target) {
+        try {
+          target.focus();
+          if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
+            const proto = target.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement?.prototype : window.HTMLInputElement?.prototype;
+            const setter = proto ? Object.getOwnPropertyDescriptor(proto, 'value')?.set : null;
+            const cur = target.value || '';
+            const nextVal = cur && !cur.endsWith('\n') && !cur.endsWith(' ') ? `${cur} ${text}` : `${cur}${text}`;
+            if (setter) setter.call(target, nextVal);
+            else target.value = nextVal;
+            target.dispatchEvent(new Event('input', { bubbles: true }));
+            return true;
+          }
+
+          // Contenteditable / Lexical editor path
+          const sel = window.getSelection?.();
+          if (sel) {
+            const range = document.createRange();
+            range.selectNodeContents(target);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+
+          let inserted = false;
+          try {
+            if (typeof InputEvent === 'function') {
+              const beforeEv = new InputEvent('beforeinput', {
+                inputType: 'insertText',
+                data: text,
+                bubbles: true,
+                cancelable: true
+              });
+              const notCanceled = target.dispatchEvent(beforeEv);
+              // Lexical consumes beforeinput and updates state itself when prevented
+              if (!notCanceled) inserted = true;
+            }
+          } catch {}
+
+          if (!inserted) {
+            try {
+              inserted = Boolean(document.execCommand && document.execCommand('insertText', false, text));
+            } catch {}
+          }
+
+          if (inserted) return true;
+        } catch {}
+      }
+
+      // Clipboard fallback
+      try {
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(text);
+          return 'clipboard';
+        }
+      } catch {}
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        return 'clipboard';
+      } catch {}
+      return false;
+    }
+
+    function filterItems() {
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+      const q = searchQuery.trim().toLowerCase();
+
+      return items.filter(item => {
+        if (activeTab === 'favorites' && !item.isFavorite && item.recentRank < 0) return false;
+        if (activeTab === 'builtin' && item.source !== 'builtin' && item.source !== 'builtin_skill') return false;
+        if (activeTab === 'installed' && item.source !== 'plugin' && item.source !== 'global_skill') return false;
+        if (activeTab === 'agent_skills') {
+          if (item.source !== 'agent_skills') return false;
+          if (activeSubCat !== 'ALL' && item.category !== activeSubCat) return false;
+        }
+        if (!q) return true;
+        const hay = [
+          item.command,
+          ...(Array.isArray(item.aliases) ? item.aliases : []),
+          item.title,
+          item.summary,
+          item.category,
+          item.sourceLabel,
+          item.directory,
+          item.enDescription
+        ].filter(Boolean).join(' ').toLowerCase();
+        return hay.includes(q);
+      }).sort((a, b) => {
+        if (activeTab === 'favorites') {
+          if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+          if (a.recentRank !== b.recentRank) {
+            if (a.recentRank >= 0 && b.recentRank >= 0) return a.recentRank - b.recentRank;
+            return a.recentRank >= 0 ? -1 : 1;
+          }
+        }
+        if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+        if (a.nativeMounted !== b.nativeMounted && a.source === 'agent_skills' && b.source === 'agent_skills') {
+          return a.nativeMounted ? -1 : 1;
+        }
+        return String(a.command).localeCompare(String(b.command));
+      });
+    }
+
+    function renderSubCategories() {
+      const wrap = el('cmd-subcat-bar');
+      if (!wrap) return;
+      if (activeTab !== 'agent_skills') {
+        wrap.hidden = true;
+        return;
+      }
+      const cats = Array.isArray(payload?.stats?.agentSkillsCategories) ? payload.stats.agentSkillsCategories : [];
+      wrap.hidden = cats.length === 0;
+      const pills = ['ALL', ...cats].map(cat => {
+        const label = cat === 'ALL' ? '全部分类' : cat;
+        const active = activeSubCat === cat ? 'active' : '';
+        return `<button type="button" class="cmd-subcat-pill ${active}" data-subcat="${escapeHtmlCmd(cat)}">${escapeHtmlCmd(label)}</button>`;
+      }).join('');
+      wrap.innerHTML = pills;
+    }
+
+    function renderList() {
+      const listEl = el('cmd-hub-list');
+      const metaEl = el('cmd-hub-stats');
+      if (!listEl) return;
+
+      const stats = payload?.stats;
+      if (metaEl && stats) {
+        metaEl.textContent = `共 ${stats.total} 项（官方 ${stats.builtinCount} · 插件/全局 ${stats.installedCount} · agent_skills ${stats.agentSkillsCount}）· 原生挂载 ${stats.nativePinnedCount} 项 (~${stats.nativePinnedTokens} tok)`;
+      }
+
+      renderSubCategories();
+      const filtered = filterItems();
+      if (!filtered.length) {
+        listEl.innerHTML = `<div class="cmd-empty-state">${searchQuery ? '未找到匹配的指令或技能，请尝试更换关键词。' : '当前分类暂无条目。'}</div>`;
+        return;
+      }
+
+      const maxRender = searchQuery ? 80 : 120;
+      const visible = filtered.slice(0, maxRender);
+      listEl.innerHTML = visible.map(item => {
+        const isExp = expandedId === item.id;
+        const toneClass = item.costTone === 'good' ? 'pill-ok' : (item.costTone === 'warn' ? 'pill-warn' : (item.costTone === 'info' ? 'pill-info' : 'pill-muted'));
+        const starChar = item.isFavorite ? '★' : '☆';
+        const starCls = item.isFavorite ? 'is-fav' : '';
+        const aliasHint = Array.isArray(item.aliases) && item.aliases.length
+          ? `<span class="cmd-alias-tag">${escapeHtmlCmd(item.aliases[0])}</span>`
+          : '';
+        const pinBtn = item.canPinNative
+          ? `<button type="button" class="cmd-pin-btn ${item.nativeMounted ? 'is-pinned' : ''}" data-cmd-action="pin" data-cmd-id="${escapeHtmlCmd(item.id)}" data-cmd-dir="${escapeHtmlCmd(item.directory)}" data-cmd-pinned="${item.nativeMounted ? '1' : '0'}" title="开启后将同步写入 ~/.gemini/config/skills.json，支持原生 / 补全（会占用少量系统提示预算）；关闭则零常驻占用，按需触发">${item.nativeMounted ? '⚡ 已原生挂载' : '＋ 设为原生 /'}</button>`
+          : '';
+
+        return `
+          <div class="cmd-card ${isExp ? 'is-expanded' : ''}" data-cmd-card="${escapeHtmlCmd(item.id)}">
+            <div class="cmd-card-head" data-cmd-action="expand" data-cmd-id="${escapeHtmlCmd(item.id)}">
+              <div class="cmd-card-main">
+                <div class="cmd-card-top-row">
+                  <code class="cmd-slash-code">${escapeHtmlCmd(item.command)}</code>
+                  ${aliasHint}
+                  <span class="cmd-card-title">${escapeHtmlCmd(item.title)}</span>
+                </div>
+                <div class="cmd-card-summary">${escapeHtmlCmd(item.summary)}</div>
+              </div>
+              <div class="cmd-card-actions">
+                <span class="key-pill ${toneClass}" style="font-size:9.5px;padding:1px 5px;white-space:nowrap">${escapeHtmlCmd(item.costTag || item.category)}</span>
+                <button type="button" class="cmd-icon-btn ${starCls}" data-cmd-action="fav" data-cmd-id="${escapeHtmlCmd(item.id)}" title="${item.isFavorite ? '取消收藏' : '加入常用收藏'}">${starChar}</button>
+                <button type="button" class="cmd-insert-btn" data-cmd-action="insert" data-cmd-id="${escapeHtmlCmd(item.id)}" title="仅填入对话框输入框，不会自动发送">填入</button>
+              </div>
+            </div>
+            ${isExp ? `
+              <div class="cmd-card-detail">
+                <div class="cmd-detail-meta">
+                  <span>来源：${escapeHtmlCmd(item.sourceLabel || item.source)}</span>
+                  <span>分类：${escapeHtmlCmd(item.category || '通用')}</span>
+                  ${item.estimatedTokens ? `<span>元数据估算：~${item.estimatedTokens} tok</span>` : ''}
+                </div>
+                ${item.whenToUse ? `<div class="cmd-detail-row"><strong>适用场景：</strong>${escapeHtmlCmd(item.whenToUse)}</div>` : ''}
+                ${item.whenNotToUse ? `<div class="cmd-detail-row"><strong>不建议：</strong>${escapeHtmlCmd(item.whenNotToUse)}</div>` : ''}
+                ${item.example ? `<div class="cmd-detail-row"><strong>用法示例：</strong><code>${escapeHtmlCmd(item.example)}</code></div>` : ''}
+                ${item.enDescription && item.enDescription !== item.summary ? `<div class="cmd-detail-row cmd-detail-en"><strong>原文描述：</strong>${escapeHtmlCmd(item.enDescription.slice(0, 260))}${item.enDescription.length > 260 ? '…' : ''}</div>` : ''}
+                ${item.skillPath ? `<div class="cmd-detail-row cmd-detail-path"><strong>文件路径：</strong><code>${escapeHtmlCmd(item.skillPath)}</code></div>` : ''}
+                <div class="cmd-detail-footer">
+                  ${pinBtn}
+                  <button type="button" class="cmd-copy-btn" data-cmd-action="copy" data-cmd-id="${escapeHtmlCmd(item.id)}">复制指令文本</button>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function refresh(force = false) {
+      if (loading) return;
+      if (loaded && !force && payload) {
+        renderList();
+        return;
+      }
+      loading = true;
+      const listEl = el('cmd-hub-list');
+      if (listEl && !payload) listEl.innerHTML = '<div class="cmd-empty-state">正在扫描内置指令、已装插件与 E:\\agent_skills 技能库…</div>';
+      try {
+        const res = await callCommandsApi('list', { force });
+        if (res && res.ok) {
+          payload = res;
+          loaded = true;
+          renderList();
+        } else {
+          if (listEl) listEl.innerHTML = `<div class="cmd-empty-state">加载失败：${escapeHtmlCmd(res?.error || '未知错误')}</div>`;
+        }
+      } catch (e) {
+        if (listEl) listEl.innerHTML = `<div class="cmd-empty-state">加载异常：${escapeHtmlCmd(e.message)}</div>`;
+      } finally {
+        loading = false;
+      }
+    }
+
+    async function handleListClick(e) {
+      const actionEl = e.target?.closest?.('[data-cmd-action]');
+      if (!actionEl) return;
+      e.stopPropagation();
+      const action = actionEl.getAttribute('data-cmd-action');
+      const id = actionEl.getAttribute('data-cmd-id');
+      const item = (payload?.items || []).find(i => i.id === id);
+      if (!item) return;
+
+      if (action === 'expand') {
+        expandedId = expandedId === id ? null : id;
+        renderList();
+        return;
+      }
+
+      if (action === 'fav') {
+        const prevFavs = Array.isArray(payload?.prefs?.favorites) ? payload.prefs.favorites.slice() : [];
+        const nextFavs = item.isFavorite ? prevFavs.filter(f => f !== id) : [id, ...prevFavs.filter(f => f !== id)];
+        item.isFavorite = !item.isFavorite;
+        if (payload?.prefs) payload.prefs.favorites = nextFavs;
+        renderList();
+        await callCommandsApi('savePrefs', { favorites: nextFavs });
+        return;
+      }
+
+      if (action === 'insert') {
+        const res = insertCommandIntoComposer(item.insertText);
+        // Track MRU recent
+        const prevRec = Array.isArray(payload?.prefs?.recent) ? payload.prefs.recent.slice() : [];
+        const nextRec = [id, ...prevRec.filter(r => r !== id)].slice(0, 12);
+        if (payload?.prefs) payload.prefs.recent = nextRec;
+        void callCommandsApi('savePrefs', { recent: nextRec });
+
+        if (res === true) {
+          showToast(`已填入 ${item.command}（未自动发送，请按需补全后回车）`);
+          if (typeof closeAllPanels === 'function') closeAllPanels();
+        } else if (res === 'clipboard') {
+          showToast(`已复制 ${item.command} 到剪贴板，请直接粘贴到对话框`);
+        } else {
+          showToast('未能定位输入框，请点击“复制指令文本”手动粘贴', true);
+        }
+        return;
+      }
+
+      if (action === 'copy') {
+        try {
+          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(item.insertText);
+          showToast(`已复制 ${item.command} 到剪贴板`);
+        } catch {
+          showToast('复制失败，请手动选中复制', true);
+        }
+        return;
+      }
+
+      if (action === 'pin') {
+        const dir = actionEl.getAttribute('data-cmd-dir');
+        const currentlyPinned = actionEl.getAttribute('data-cmd-pinned') === '1';
+        actionEl.disabled = true;
+        const res = await callCommandsApi('pin', dir, !currentlyPinned);
+        if (res && res.ok && res.data) {
+          payload = res.data;
+          renderList();
+          showToast(!currentlyPinned
+            ? `已原生挂载 /${item.slashName} 至 skills.json（新会话或重启后原菜单即可直接补全）`
+            : `已取消原生挂载 ${item.command}（改为 0 Token 常驻、按需填入触发）`);
+        } else {
+          actionEl.disabled = false;
+          showToast(res?.error || '更新原生挂载状态失败', true);
+        }
+      }
+    }
+
+    function bindEvents() {
+      const searchInput = el('cmd-hub-search');
+      searchInput?.addEventListener('input', (e) => {
+        searchQuery = e.target.value || '';
+        renderList();
+      });
+
+      const tabsWrap = el('cmd-hub-tabs');
+      tabsWrap?.addEventListener('click', (e) => {
+        const btn = e.target?.closest?.('[data-cmd-tab]');
+        if (!btn) return;
+        activeTab = btn.getAttribute('data-cmd-tab') || 'favorites';
+        activeSubCat = 'ALL';
+        tabsWrap.querySelectorAll('[data-cmd-tab]').forEach(b => b.classList.toggle('active', b === btn));
+        renderList();
+      });
+
+      el('cmd-subcat-bar')?.addEventListener('click', (e) => {
+        const btn = e.target?.closest?.('[data-subcat]');
+        if (!btn) return;
+        activeSubCat = btn.getAttribute('data-subcat') || 'ALL';
+        renderList();
+      });
+
+      el('cmd-hub-list')?.addEventListener('click', (e) => { void handleListClick(e); });
+      el('btn-refresh-commands')?.addEventListener('click', () => { void refresh(true); });
+    }
+
+    return {
+      bindEvents,
+      refresh
+    };
+  })();
+// ============================================================================
+  // Module: Transient 503 / Service-Unavailable Auto-Retry Guard (auto-retry.js)
+  // Opt-in toggle with exponential backoff and strict max-retry cap.
+  // Inspired by MIT-licensed KingYeon-Zoo/antigravity-auto-retry.
+  // ============================================================================
+  const AutoRetryController = (() => {
+    const STORAGE_KEY = 'ag_personal_auto_retry_v1';
+    const TRANSIENT_ERR_RE = /(?:\b503\b|\b502\b|\b504\b|no capacity available|service unavailable|server overloaded|temporarily unavailable|high demand|model is overloaded)/i;
+    const RETRY_BTN_RE = /^(?:retry|try again|重试|重新尝试|再试一次)$/i;
+
+    let cfg = { enabled: false, maxRetries: 2 };
+    let attempts = 0;
+    let totalTriggered = 0;
+    let lastErrorSig = '';
+    let pendingTimer = null;
+    let pollTimer = null;
+
+    function loadConfig() {
+      try {
+        const raw = window.localStorage?.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          cfg.enabled = Boolean(parsed.enabled);
+          const mr = Number(parsed.maxRetries);
+          if (Number.isInteger(mr) && mr >= 1 && mr <= 3) cfg.maxRetries = mr;
+        }
+      } catch {}
+      return { ...cfg };
+    }
+
+    function saveConfig(next) {
+      cfg = {
+        enabled: Boolean(next?.enabled),
+        maxRetries: Math.max(1, Math.min(3, Number(next?.maxRetries) || 2))
+      };
+      try { window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch {}
+      syncUi();
+      if (cfg.enabled) startWatcher();
+      else stopWatcher();
+      return { ...cfg };
+    }
+
+    function findRetryableErrorButton() {
+      try {
+        const buttons = Array.from(document.querySelectorAll('button, [role="button"]'));
+        for (let i = buttons.length - 1; i >= 0; i--) {
+          const btn = buttons[i];
+          if (!btn || btn.disabled || btn.closest?.('#ag-context-meter')) continue;
+          const label = (btn.textContent || btn.getAttribute?.('aria-label') || '').trim();
+          if (!RETRY_BTN_RE.test(label)) continue;
+          const rect = btn.getBoundingClientRect?.();
+          if (!rect || rect.width === 0 || rect.height === 0) continue;
+          // Walk up 4 levels to verify the surrounding error card matches transient 503/overload
+          let box = btn.parentElement;
+          let matchedText = '';
+          for (let d = 0; box && d < 5; d++) {
+            const txt = (box.innerText || box.textContent || '').trim();
+            if (txt.length > 0 && txt.length < 1500 && TRANSIENT_ERR_RE.test(txt)) {
+              matchedText = txt.slice(0, 120);
+              break;
+            }
+            box = box.parentElement;
+          }
+          if (matchedText) return { btn, sig: `${location.pathname}|${matchedText}` };
+        }
+      } catch {}
+      return null;
+    }
+
+    function tick() {
+      if (!cfg.enabled || state.disposed) return;
+      if (pendingTimer) return;
+      const found = findRetryableErrorButton();
+      if (!found) {
+        if (lastErrorSig) {
+          // Error banner gone -> stream recovered, reset retry counter
+          attempts = 0;
+          lastErrorSig = '';
+          syncUi();
+        }
+        return;
+      }
+      if (found.sig !== lastErrorSig) {
+        lastErrorSig = found.sig;
+        attempts = 0;
+      }
+      if (attempts >= cfg.maxRetries) return;
+      const delayMs = [3000, 6000, 12000][attempts] || 12000;
+      pendingTimer = setTimeout(() => {
+        pendingTimer = null;
+        if (!cfg.enabled || state.disposed) return;
+        const again = findRetryableErrorButton();
+        if (!again) return;
+        attempts++;
+        totalTriggered++;
+        try { again.btn.click(); } catch {}
+        syncUi();
+      }, delayMs);
+    }
+
+    function startWatcher() {
+      if (pollTimer || state.disposed) return;
+      pollTimer = setInterval(tick, 2200);
+    }
+
+    function stopWatcher() {
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+    }
+
+    function syncUi() {
+      const chk = el('chk-auto-retry-503');
+      const sel = el('sel-auto-retry-max');
+      const badge = el('auto-retry-badge');
+      const desc = el('auto-retry-status-desc');
+      if (chk) chk.checked = cfg.enabled;
+      if (sel) sel.value = String(cfg.maxRetries);
+      if (badge) {
+        badge.textContent = cfg.enabled ? `已开启 (上限 ${cfg.maxRetries} 次)` : '已关闭';
+        badge.className = `key-pill ${cfg.enabled ? 'pill-ok' : 'pill-muted'}`;
+      }
+      if (desc) {
+        desc.textContent = cfg.enabled
+          ? `监听 503 / No capacity / 服务过载等瞬时错误，退避重试最多 ${cfg.maxRetries} 次（本次会话已自动重试 ${totalTriggered} 次）。`
+          : '开启后，遇到 503 / No capacity available 等服务端瞬时错误时将自动退避重试，避免频繁手动点击 Retry。';
+      }
+    }
+
+    function init() {
+      loadConfig();
+      syncUi();
+      el('chk-auto-retry-503')?.addEventListener('change', (e) => {
+        saveConfig({ enabled: Boolean(e.target.checked), maxRetries: cfg.maxRetries });
+      });
+      el('sel-auto-retry-max')?.addEventListener('change', (e) => {
+        saveConfig({ enabled: cfg.enabled, maxRetries: Number(e.target.value) || 2 });
+      });
+      if (cfg.enabled) startWatcher();
+    }
+
+    return {
+      init,
+      dispose: stopWatcher,
+      getState: () => ({ ...cfg, attempts, totalTriggered })
+    };
+  })();
+
+  // ============================================================================
+  // Personal Suite Coordinator: KV Cache, Breakdown, Keeper, Quota Mode & Cmd Hub
+  // ============================================================================
+  let prevTurnCacheHitRate = null;
+  let lastBreakdownRenderSig = '';
+  let personalQuotaRingMode = (() => {
+    try { return window.localStorage?.getItem('ag_personal_quota_ring_mode') || 'auto'; } catch { return 'auto'; }
+  })();
+
+  function renderKvCacheAndBreakdown() {
+    // 1. KV Cache Hit Rate (PR #37 accurate formula)
+    const rateEl = el('kv-cache-rate');
+    const detailEl = el('kv-cache-detail');
+    const badgeEl = el('kv-cache-badge');
+    const alertEl = el('kv-cache-drop-alert');
+    if (rateEl && detailEl && badgeEl) {
+      const stats = state.scan?.cacheHitStats || null;
+      const d = state.latest || null;
+      let hitRate = stats?.hitRate ?? d?.cacheHitRate ?? null;
+      let cachedTok = stats?.cacheReadTokens ?? d?.cached ?? 0;
+      let uncachedTok = stats?.uncachedInput ?? Math.max(0, (d?.input || 0) - cachedTok);
+      if (hitRate === null && (cachedTok > 0 || uncachedTok > 0)) {
+        hitRate = Number(((cachedTok / (cachedTok + uncachedTok)) * 100).toFixed(1));
+      }
+      if (hitRate !== null && Number.isFinite(hitRate)) {
+        rateEl.textContent = `${hitRate.toFixed(1)}%`;
+        const tier = hitRate >= 80 ? 'good' : (hitRate >= 40 ? 'info' : 'warn');
+        badgeEl.textContent = hitRate >= 80 ? '高命中' : (hitRate >= 40 ? '中等命中' : '低命中 / 冷启动');
+        badgeEl.className = `key-pill ${tier === 'good' ? 'pill-ok' : (tier === 'info' ? 'pill-info' : 'pill-warn')}`;
+        detailEl.textContent = `缓存命中 ${fmt(cachedTok)} · 新增输入 ${fmt(uncachedTok)}`;
+        if (alertEl) {
+          if (prevTurnCacheHitRate !== null && (prevTurnCacheHitRate - hitRate) >= 25) {
+            alertEl.textContent = `⚠️ KV 缓存命中率较前序请求下降 ${(prevTurnCacheHitRate - hitRate).toFixed(1)} 个百分点（可能因上下文变化或压缩）。`;
+            alertEl.hidden = false;
+          } else {
+            alertEl.hidden = true;
+          }
+        }
+        prevTurnCacheHitRate = hitRate;
+      } else {
+        rateEl.textContent = '—';
+        badgeEl.textContent = '待生成';
+        badgeEl.className = 'key-pill pill-muted';
+        detailEl.textContent = '等待本轮模型返回缓存统计…';
+        if (alertEl) alertEl.hidden = true;
+      }
+    }
+
+    // 2. Authoritative Context Breakdown (SQLite gen_metadata protobuf)
+    const bdCard = el('ctx-breakdown-card');
+    const bdBadge = el('ctx-breakdown-badge');
+    const bdLegend = el('ctx-breakdown-legend');
+    const bdList = el('ctx-breakdown-list');
+    const bdFiles = el('ctx-breakdown-files');
+    if (!bdCard || !bdList) return;
+    const bd = state.scan?.contextBreakdown;
+    const bdSig = bd ? `${bd.available}|${bd.totalTokens}|${bd.categories?.length}|${bd.openedFiles?.skillFiles?.length}` : 'none';
+    if (bdSig === lastBreakdownRenderSig) return;
+    lastBreakdownRenderSig = bdSig;
+
+    if (!bd || !bd.available || !bd.hasBreakdown) {
+      if (bdBadge) { bdBadge.textContent = '暂无分组数据'; bdBadge.className = 'key-pill pill-muted'; }
+      bdList.innerHTML = '<div style="grid-column:1/-1;font-size:11px;color:var(--ag-text-muted)">发送一轮对话后将自动解析本机 SQLite 权威上下文分组。</div>';
+      if (bdLegend) bdLegend.innerHTML = '';
+      if (bdFiles) bdFiles.hidden = true;
+      return;
+    }
+
+    const total = Math.max(1, bd.totalTokens || 1);
+    const sysPct = Math.round(((bd.groups?.system || 0) / total) * 100);
+    const customPct = Math.round(((bd.groups?.custom || 0) / total) * 100);
+    const chatPct = Math.max(0, 100 - sysPct - customPct);
+    const segSys = el('ctx-bd-seg-sys');
+    const segCustom = el('ctx-bd-seg-custom');
+    const segChat = el('ctx-bd-seg-chat');
+    if (segSys) segSys.style.width = `${sysPct}%`;
+    if (segCustom) segCustom.style.width = `${customPct}%`;
+    if (segChat) segChat.style.width = `${chatPct}%`;
+    if (bdBadge) {
+      bdBadge.textContent = `${fmt(bd.totalTokens)} tok`;
+      bdBadge.className = 'key-pill pill-info';
+    }
+    if (bdLegend) {
+      bdLegend.innerHTML = `
+        <span><b style="color:#6366f1">●</b> 系统 ${fmt(bd.groups?.system || 0)} (${sysPct}%)</span>
+        <span><b style="color:#10b981">●</b> 规则/技能/MCP ${fmt(bd.groups?.custom || 0)} (${customPct}%)</span>
+        <span><b style="color:#38bdf8">●</b> 对话与工具 ${fmt(bd.groups?.chat || 0)} (${chatPct}%)</span>
+      `;
+    }
+    bdList.innerHTML = (bd.categories || []).slice(0, 10).map(c => `
+      <div class="ctx-bd-item">
+        <span class="ctx-bd-item-lbl">${c.label}</span>
+        <span class="ctx-bd-item-val">${fmt(c.tokens)} (${c.sharePct}%)</span>
+      </div>
+    `).join('');
+
+    if (bdFiles) {
+      const opened = bd.openedFiles || {};
+      const lines = [];
+      if (opened.skillFiles?.length) lines.push(`已读技能 (${opened.skillFiles.length}): ${opened.skillFiles.map(p => p.split(/[\\/]/).slice(-2).join('/')).join(', ')}`);
+      if (opened.artifactFiles?.length) lines.push(`已读工件 (${opened.artifactFiles.length}): ${opened.artifactFiles.map(p => p.split(/[\\/]/).pop()).join(', ')}`);
+      if (opened.knowledgeFiles?.length) lines.push(`已读知识 (${opened.knowledgeFiles.length}): ${opened.knowledgeFiles.map(p => p.split(/[\\/]/).pop()).join(', ')}`);
+      if (lines.length) {
+        bdFiles.textContent = lines.join(' · ');
+        bdFiles.hidden = false;
+      } else {
+        bdFiles.hidden = true;
+      }
+    }
+  }
+
+  async function refreshKeeperUi() {
+    const badge = el('keeper-badge');
+    const desc = el('keeper-status-desc');
+    const btn = el('btn-toggle-keeper');
+    if (!badge || !btn) return;
+    try {
+      let res = null;
+      if (window.contextMeterAPI?.getKeeperStatus) {
+        res = await window.contextMeterAPI.getKeeperStatus();
+      } else {
+        const live = getLiveBridge();
+        if (live) {
+          const r = await fetch(`http://127.0.0.1:${live.port}/keeper-status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-AG-Context-Token': live.token },
+            body: '{}'
+          });
+          res = await r.json();
+        }
+      }
+      if (!res || !res.ok) {
+        badge.textContent = '未连接';
+        badge.className = 'key-pill pill-muted';
+        return;
+      }
+      const installed = Boolean(res.installed);
+      badge.textContent = installed ? '已启用守护' : '未安装';
+      badge.className = `key-pill ${installed ? 'pill-ok' : 'pill-muted'}`;
+      btn.textContent = installed ? '卸载守护进程' : '安装并启用守护';
+      btn.dataset.keeperInstalled = installed ? '1' : '0';
+      if (desc) {
+        const lastInfo = res.lastState?.checkedAt
+          ? `最近巡检：${res.lastState.checkedAt.replace('T', ' ').slice(0, 19)}（状态：${res.lastState.lastResult || '正常'}）`
+          : '通过官方无界面 Sidecar 机制，在 Antigravity 官方更新后下次启动时自动重装本套件。';
+        desc.textContent = installed ? `✅ 守护插件已就绪（${res.pluginId}）。${lastInfo}` : lastInfo;
+      }
+    } catch {}
+  }
+
+  function initPersonalSuiteUi() {
+    // 1. / Commands Hub triggers
+    el('badge-commands')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = !el('panel-commands')?.hidden;
+      showPanel(open ? null : 'commands');
+    });
+    el('overflow-commands-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showPanel('commands');
+    });
+    el('close-commands')?.addEventListener('click', () => showPanel(null));
+    CommandsHubController.bindEvents();
+
+    // 2. 503 Auto-Retry controller
+    AutoRetryController.init();
+
+    // 3. Sidecar Keeper controls
+    el('btn-toggle-keeper')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const installed = btn?.dataset?.keeperInstalled === '1';
+      if (btn) btn.disabled = true;
+      try {
+        if (window.contextMeterAPI?.toggleKeeper) {
+          await window.contextMeterAPI.toggleKeeper(!installed);
+        }
+        await refreshKeeperUi();
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+    el('btn-refresh-keeper')?.addEventListener('click', () => { void refreshKeeperUi(); });
+    void refreshKeeperUi();
+
+    // 4. Quota 5h / Weekly ring switcher (Issue #41)
+    const qModeBar = el('quota-ring-mode-bar');
+    const syncQuotaModeButtons = () => {
+      qModeBar?.querySelectorAll('[data-quota-ring-mode]').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-quota-ring-mode') === personalQuotaRingMode);
+      });
+    };
+    syncQuotaModeButtons();
+    qModeBar?.addEventListener('click', (e) => {
+      const btn = e.target?.closest?.('[data-quota-ring-mode]');
+      if (!btn) return;
+      personalQuotaRingMode = btn.getAttribute('data-quota-ring-mode') || 'auto';
+      try { window.localStorage?.setItem('ag_personal_quota_ring_mode', personalQuotaRingMode); } catch {}
+      syncQuotaModeButtons();
+      if (typeof renderQuotaBoard === 'function') renderQuotaBoard();
+    });
+
+    // 5. Auto-boot live reversible Host Chinese Localization ONLY if enabled in config
+    const bootCfg = typeof window !== 'undefined' ? window.__AGContextMeterHostI18nConfig : null;
+    let shouldEnableZh = Boolean(bootCfg && bootCfg.enabled === true);
+    if (!bootCfg) {
+      try {
+        shouldEnableZh = window.localStorage?.getItem('ag_personal_host_i18n_zh') === '1';
+      } catch {}
+    }
+    currentChineseEnabled = shouldEnableZh;
+    syncClientLanguageButtons();
+    if (chineseBadge) {
+      chineseBadge.textContent = shouldEnableZh ? '已开启 (实时)' : '英文原文';
+      chineseBadge.className = `key-pill ${shouldEnableZh ? 'pill-ok' : 'pill-muted'}`;
+    }
+    if (shouldEnableZh) {
+      void HostI18nController.enable();
+    }
+  }
   function updateRingAndBubble(d, session, pct, danger, stale, incomplete) {
     const ringFill = el('ring-fill');
     const tipTitle = el('ctx-tip-title');
@@ -25035,6 +26469,7 @@ var cumLockedKey = null;
       return;
     }
     renderSessionCost();
+    try { renderKvCacheAndBreakdown(); } catch { }
 
     const d = state.latest, session = state.scan?.session;
     const disp = resolveDisplayStatus(d, session);
@@ -26557,12 +27992,24 @@ var cumLockedKey = null;
           isResetPassed: rm.isResetPassed
         };
       });
-      const sel = (typeof selectPrimaryQuotaBucket === 'function')
-        ? selectPrimaryQuotaBucket(nextBuckets)
-        : (() => {
-            const priced = nextBuckets.filter(b => b.remainingFraction !== null).sort((a, b) => a.remainingFraction - b.remainingFraction);
-            return { primaryBucket: priced[0] || nextBuckets[0] || null, selectionReason: priced.length <= 1 ? 'single_window' : 'tighter_window' };
-          })();
+      const sel = (() => {
+        if (personalQuotaRingMode === '5h' || personalQuotaRingMode === 'weekly') {
+          const wantWeekly = personalQuotaRingMode === 'weekly';
+          const matched = nextBuckets.find(b => {
+            const label = String(b.windowShort || b.windowLabel || b.bucketId || '').toLowerCase();
+            return wantWeekly
+              ? (label.includes('7d') || label.includes('week') || label.includes('周'))
+              : (label.includes('5h') || label.includes('hour') || label.includes('时'));
+          });
+          if (matched) return { primaryBucket: matched, selectionReason: wantWeekly ? 'user_weekly' : 'user_5h' };
+        }
+        return (typeof selectPrimaryQuotaBucket === 'function')
+          ? selectPrimaryQuotaBucket(nextBuckets)
+          : (() => {
+              const priced = nextBuckets.filter(b => b.remainingFraction !== null).sort((a, b) => a.remainingFraction - b.remainingFraction);
+              return { primaryBucket: priced[0] || nextBuckets[0] || null, selectionReason: priced.length <= 1 ? 'single_window' : 'tighter_window' };
+            })();
+      })();
       const pb = sel.primaryBucket || p.primaryBucket || null;
       return {
         ...p,
@@ -28146,7 +29593,10 @@ var cumLockedKey = null;
     if (accountsUiState.removeModal?.open) renderAccountRemoveModal();
   }
 
-  async function refreshAccountsOverview({ silent = true, refreshAllRemote = false } = {}) {
+  async function refreshAccountsOverview() {
+    return null;
+  }
+  async function _removedRefreshAccountsOverview({ silent = true, refreshAllRemote = false } = {}) {
     if (state.disposed) return null;
     try {
       const hasIpc = typeof window !== 'undefined' && typeof window.contextMeterAPI?.getAccountsOverview === 'function';
@@ -28984,6 +30434,8 @@ var cumLockedKey = null;
     isDisposedForTest: () => Boolean(state.disposed),
     dispose() {
       earlyForceDispose();
+      try { HostI18nController.dispose(); } catch { }
+      try { AutoRetryController.dispose(); } catch { }
       clearQuotaTimers();
       clearInterval(timer);
       clearLivePendingRequestWait();
@@ -29031,6 +30483,7 @@ var cumLockedKey = null;
     }
   });
   installRequestInterceptor();
+  try { initPersonalSuiteUi(); } catch { }
   __chartsReady = true;
   render();
   tick();

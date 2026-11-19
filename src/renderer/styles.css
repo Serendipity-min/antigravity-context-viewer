@@ -382,9 +382,9 @@
     }
 
     /* 单元 4: 一键启动 CLI 按钮 */
-    #badge-cli{
+    #badge-commands{
       color:var(--ag-toolbar-fg);
-      min-width:44px;
+      min-width:46px;
       padding:0 6px;
       gap:3px;
       justify-content:center;
@@ -392,50 +392,12 @@
       user-select: none;
       -webkit-user-select: none;
     }
-    #badge-cli:hover,#badge-cli:focus-visible{
+    #badge-commands:hover,#badge-commands:focus-visible{
       color:var(--ag-toolbar-fg-hover);
     }
-    #badge-cli:active,
-    #badge-cli[data-pressed="true"]{
-      transform: scale(0.92);
+    #badge-commands:active,
+    #badge-commands[aria-expanded="true"]{
       background: rgba(127, 127, 127, 0.16);
-    }
-    #badge-cli[data-busy="true"]{
-      cursor: wait;
-      pointer-events: none;
-    }
-    #badge-cli[data-busy="true"] .cli-icon{
-      animation: ag-cli-pulse 0.8s ease-in-out infinite alternate;
-    }
-    @keyframes ag-cli-pulse {
-      0% { transform: scale(0.9); opacity: 0.6; }
-      100% { transform: scale(1.15); opacity: 1; }
-    }
-    .cli-icon{
-      font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
-      font-size:10.5px;font-weight:700;
-      color:var(--ag-custom-token-accent,var(--ag-token-accent-default));
-      line-height:1;
-      display: inline-block;
-      transition: transform 0.15s ease;
-    }
-
-    /* CLI 启动状态提示浮层 */
-    #cli-launch-toast{
-      position:fixed;top:38px;right:140px;z-index:2147483650;
-      max-width:360px;padding:7px 11px;border-radius:8px;
-      border:1px solid var(--ag-float-border);
-      background:var(--ag-float-bg);color:var(--ag-text-primary);
-      box-shadow:var(--ag-float-shadow);font-size:11.5px;line-height:1.4;
-      pointer-events:auto;transition:opacity .15s ease,transform .15s ease;
-    }
-    #cli-launch-toast[hidden]{display:none!important}
-    #cli-launch-toast[data-tone="error"]{
-      border-color:rgba(239,68,68,0.45);
-      color:#f87171;
-    }
-    :host([data-theme="light"]) #cli-launch-toast[data-tone="error"]{
-      color:#dc2626;
     }
 
     /* 单元 5: 窄屏溢出菜单入口 */
@@ -452,15 +414,15 @@
     }
     :host([data-layout="compact"]) #badge-speed,
     :host([data-layout="compact"]) #badge-tokens,
-    :host([data-layout="compact"]) #badge-cli{
+    :host([data-layout="compact"]) #badge-commands{
       padding:0 5px;font-size:11.5px;gap:3px;
     }
     :host([data-layout="minimal"]) #badge-speed,
     :host([data-layout="minimal"]) #badge-tokens,
-    :host([data-layout="minimal"]) #badge-cli,
+    :host([data-layout="minimal"]) #badge-commands,
     :host([data-layout="ring-only"]) #badge-speed,
     :host([data-layout="ring-only"]) #badge-tokens,
-    :host([data-layout="ring-only"]) #badge-cli{
+    :host([data-layout="ring-only"]) #badge-commands{
       display:none!important;
     }
     :host([data-layout="minimal"]) #badge-overflow,
@@ -2368,3 +2330,430 @@
     .ag-dp-action-btn:focus-visible{
       outline:none;border-color:#a78bfa;box-shadow:0 0 0 2px rgba(139,92,246,0.28);
     }
+
+
+/* ============================================================================
+ * Personal Desktop Suite Additions: / Commands Hub, KV Cache & Context Breakdown
+ * ============================================================================ */
+.ag-unit-cmd .cmd-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: rgba(129, 140, 248, 0.16);
+  color: #818cf8;
+  margin-right: 2px;
+}
+
+.kv-cache-card,
+.ctx-breakdown-card {
+  background: var(--ag-bg-card);
+  border: 1px solid var(--ag-border-card);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 8px 0;
+}
+
+.kv-cache-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kv-cache-rate {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ag-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.kv-cache-detail {
+  font-size: 11px;
+  color: var(--ag-text-secondary);
+  text-align: right;
+}
+
+.kv-cache-drop-alert {
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+}
+
+.ctx-breakdown-bar {
+  display: flex;
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--ag-bg-subcard);
+  margin-bottom: 7px;
+}
+
+.ctx-bd-seg {
+  display: block;
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+.ctx-bd-seg.seg-sys { background: #6366f1; }
+.ctx-bd-seg.seg-custom { background: #10b981; }
+.ctx-bd-seg.seg-chat { background: #38bdf8; }
+
+.ctx-breakdown-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--ag-text-secondary);
+  margin-bottom: 6px;
+}
+
+.ctx-breakdown-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 10px;
+  font-size: 11px;
+}
+
+.ctx-bd-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: var(--ag-bg-subcard);
+}
+
+.ctx-bd-item-lbl {
+  color: var(--ag-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ctx-bd-item-val {
+  color: var(--ag-text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ctx-breakdown-files {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--ag-border-subcard);
+  font-size: 10.5px;
+  color: var(--ag-text-muted);
+  line-height: 1.5;
+}
+
+.quota-ring-mode-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  border-radius: 7px;
+  background: var(--ag-bg-subcard);
+  border: 1px solid var(--ag-border-subcard);
+}
+
+/* Panel 4: / Commands & Skills Hub */
+#panel-commands {
+  width: 480px;
+}
+
+.cmd-hub-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+.cmd-hub-stats {
+  font-size: 10.5px;
+  color: var(--ag-text-muted);
+  line-height: 1.4;
+}
+
+.cmd-search-wrap {
+  display: flex;
+}
+
+.cmd-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 7px;
+  background: var(--ag-bg-subcard);
+  border: 1px solid var(--ag-border-card);
+  color: var(--ag-text-primary);
+  outline: none;
+}
+
+.cmd-search-input:focus {
+  border-color: #6366f1;
+}
+
+.cmd-hub-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.cmd-tab-btn,
+.cmd-subcat-pill {
+  padding: 3px 8px;
+  font-size: 11px;
+  border-radius: 999px;
+  border: 1px solid var(--ag-border-subcard);
+  background: var(--ag-bg-subcard);
+  color: var(--ag-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.cmd-tab-btn.active,
+.cmd-subcat-pill.active {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: rgba(99, 102, 241, 0.55);
+  color: var(--ag-text-primary);
+  font-weight: 600;
+}
+
+.cmd-subcat-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 54px;
+  overflow-y: auto;
+}
+
+.cmd-subcat-pill {
+  font-size: 10px;
+  padding: 2px 7px;
+}
+
+.cmd-hub-toast {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.cmd-hub-toast.is-ok {
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+.cmd-hub-toast.is-error {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.cmd-hub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 180px;
+  max-height: 390px;
+  padding-right: 2px;
+}
+
+.cmd-empty-state {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--ag-text-muted);
+}
+
+.cmd-card {
+  border: 1px solid var(--ag-border-card);
+  background: var(--ag-bg-card);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cmd-card.is-expanded {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.cmd-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.cmd-card-head:hover {
+  background: var(--ag-bg-subcard);
+}
+
+.cmd-card-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.cmd-card-top-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+
+.cmd-slash-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.12);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.cmd-alias-tag {
+  font-size: 9.5px;
+  color: var(--ag-text-muted);
+  border: 1px dashed var(--ag-border-subcard);
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.cmd-card-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ag-text-primary);
+}
+
+.cmd-card-summary {
+  font-size: 11px;
+  color: var(--ag-text-secondary);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cmd-card.is-expanded .cmd-card-summary {
+  -webkit-line-clamp: unset;
+}
+
+.cmd-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cmd-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ag-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.cmd-icon-btn.is-fav {
+  color: #f59e0b;
+}
+
+.cmd-insert-btn {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 5px;
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.14);
+  color: var(--ag-text-primary);
+  cursor: pointer;
+}
+
+.cmd-insert-btn:hover {
+  background: rgba(99, 102, 241, 0.28);
+}
+
+.cmd-card-detail {
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--ag-border-subcard);
+  background: var(--ag-bg-subcard);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ag-text-secondary);
+}
+
+.cmd-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 10px;
+  color: var(--ag-text-muted);
+  margin-bottom: 5px;
+}
+
+.cmd-detail-row {
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.cmd-detail-row code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  background: var(--ag-bg-card);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.cmd-detail-en {
+  font-size: 10.5px;
+  color: var(--ag-text-muted);
+}
+
+.cmd-detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cmd-pin-btn,
+.cmd-copy-btn {
+  padding: 3px 8px;
+  font-size: 10.5px;
+  border-radius: 5px;
+  border: 1px solid var(--ag-border-card);
+  background: var(--ag-bg-card);
+  color: var(--ag-text-primary);
+  cursor: pointer;
+}
+
+.cmd-pin-btn.is-pinned {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  font-weight: 600;
+}

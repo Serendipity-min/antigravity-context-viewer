@@ -542,19 +542,10 @@ async function install(options = {}) {
       // 若用户或测试显式传入 pureMeterOnly: true 或 --pure-meter-only，则仅注入上下文监控
       const isPureMeterOnly = Boolean(options.pureMeterOnly || process.argv.includes('--pure-meter-only'));
 
-      // 模块 A: Proxy NoTun (免 TUN 代理组件注入)
-      const shouldInjectProxy = !isPureMeterOnly && (modulesConfig.modules.proxy.enabled || options.injectProxy !== false);
-      if (shouldInjectProxy) {
-        const proxyCode = generateProxyUtilsCode(modulesConfig.modules.proxy);
-        finalUtils = proxyCode + '\n' + finalUtils;
-      }
-
-      // 模块 B: Context Meter (上下文与 Token 监控)
+      // 模块 B: Context Meter (Desktop 个性化套件：上下文监控 + /指令中心 + 免重启汉化 + 自愈守护)
       if (modulesConfig.modules.meter.enabled) {
         const meterUtils = generateMeterUtilsCode();
         finalUtils = finalUtils
-          .replace('"use strict";', `"use strict";\n${meterUtils.headerProxyHook}`)
-          .replace('function setupNodeWrapper(env) {', `function setupNodeWrapper(env) {${meterUtils.nodeWrapperHook}`)
           .replace("titleBarStyle: 'hidden',", `titleBarStyle: 'hidden',${meterUtils.menuBarOption}`)
           .replace('    void win.loadURL(url);', `${meterUtils.windowLoadHook}    void win.loadURL(url);`);
 
@@ -572,39 +563,7 @@ async function install(options = {}) {
         finalPreload += generateMeterPreloadCode();
       }
 
-      // 模块 C: Chinese (桌面端界面汉化组件注入)
-      const shouldInjectChinese = !isPureMeterOnly && (modulesConfig.modules.chinese.enabled || options.injectChinese !== false);
-      if (shouldInjectChinese) {
-        const homeDir = os.homedir();
-        const localAppDir = process.platform === 'win32'
-          ? (process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local'))
-          : (process.platform === 'darwin'
-            ? path.join(homeDir, 'Library', 'Application Support')
-            : path.join(homeDir, '.local', 'state'));
-        const dictCandidates = [
-          path.join(__dirname, 'i18n', 'zh-CN.json'),
-          path.join(__dirname, 'src', 'i18n', 'zh-CN.json'),
-          path.join(__dirname, 'dist', 'i18n', 'zh-CN.json'),
-          path.join(__dirname, '..', 'i18n', 'zh-CN.json'),
-          path.join(localAppDir, 'AntigravityContextMeter', 'i18n', 'zh-CN.json')
-        ];
-        const runtimeCandidates = [
-          path.join(__dirname, 'i18n', 'i18n-runtime.js'),
-          path.join(__dirname, 'src', 'i18n', 'i18n-runtime.js'),
-          path.join(__dirname, 'dist', 'i18n', 'i18n-runtime.js'),
-          path.join(__dirname, '..', 'i18n', 'i18n-runtime.js'),
-          path.join(localAppDir, 'AntigravityContextMeter', 'i18n', 'i18n-runtime.js')
-        ];
-        const dictP = dictCandidates.find(p => fs.existsSync(p));
-        const rtP = runtimeCandidates.find(p => fs.existsSync(p));
-        if (dictP && rtP) {
-          const dictContent = fs.readFileSync(dictP, 'utf8');
-          const runtimeContent = fs.readFileSync(rtP, 'utf8');
-          finalPreload += generateChinesePreloadCode(dictContent, runtimeContent);
-        } else {
-          throw new Error('未找到客户端汉化字典 (zh-CN.json) 或运行时脚本 (i18n-runtime.js)，拒绝在缺少必要资源时完成安装。');
-        }
-      }
+      // 注：新版汉化已重构为「主进程 IPC + 分层外置字典 + 渲染层 WeakMap 免重启切换」，不再向受沙箱限制的 preload.js 内联 390KB JSON。
 
       // 7. 写回前对最终 JavaScript 语法做严格校验断言
       if (!validateSyntax(finalUtils, 'dist/utils.js')) {
@@ -617,7 +576,7 @@ async function install(options = {}) {
       fs.writeFileSync(path.join(staging, 'dist', 'utils.js'), finalUtils, 'utf8');
       fs.writeFileSync(path.join(staging, 'dist', 'preload.js'), finalPreload, 'utf8');
 
-      // 8. 拷贝各模块 additions
+      // 8. 拷贝各模块 additions（纯 Desktop 个性化精简套件）
       const additions = [
         'asar-engine.js',
         'modules-config.js',
@@ -629,12 +588,10 @@ async function install(options = {}) {
         'meter-renderer.js',
         'meter-collector.js',
         'meter-storage.js',
-        'meter-proxy.js',
-        'meter-cli-launcher.js',
-        'meter-context-unlock.js',
-        'meter-enhance.js',
-        'meter-accounts.js',
-        'macos-binary-utils.js',
+        'meter-i18n-host.js',
+        'meter-commands.js',
+        'meter-context-breakdown.js',
+        'meter-keeper.js',
         'local-api.js',
         'attachment_scan.py'
       ];
@@ -662,12 +619,12 @@ async function install(options = {}) {
         }
       }
 
-      // 拷贝 i18n 资源文件至 ASAR 内部，确保运行中客户端可离线切换汉化
+      // 拷贝分层 i18n 字典资源至 ASAR 内部，供主进程 IPC 随时提供免重启实时汉化
       const i18nSrcDir = path.join(__dirname, 'i18n');
       if (fs.existsSync(i18nSrcDir)) {
         const i18nDstDir = path.join(staging, 'dist', 'i18n');
         fs.mkdirSync(i18nDstDir, { recursive: true });
-        for (const item of ['zh-CN.json', 'i18n-runtime.js']) {
+        for (const item of ['zh-CN.v233.json', 'zh-CN.supplement.json', 'zh-CN.json']) {
           const itemP = path.join(i18nSrcDir, item);
           if (fs.existsSync(itemP)) fs.copyFileSync(itemP, path.join(i18nDstDir, item));
         }
@@ -780,27 +737,7 @@ async function install(options = {}) {
           throw new Error('Installed checksum mismatch');
         }
 
-        // 11. 安装后从目标 ASAR 中重新读取核心启动文件并核对哈希与启动逻辑
-        const extractedLauncher = extractAsarFile(installed, 'dist/meter-cli-launcher.js').toString('utf8');
-        const localLauncherCandidates = [
-          path.join(__dirname, 'meter-cli-launcher.js'),
-          path.join(__dirname, '..', 'meter-cli-launcher.js')
-        ];
-        const localLauncherPath = localLauncherCandidates.find(p => fs.existsSync(p));
-        const installedLauncherSha = sha(Buffer.from(extractedLauncher, 'utf8'));
-        if (localLauncherPath) {
-          const localLauncherSha = sha(fs.readFileSync(localLauncherPath));
-          if (installedLauncherSha !== localLauncherSha) {
-            throw new Error(`ASAR 内 meter-cli-launcher.js 哈希核验失败 (ASAR: ${installedLauncherSha}, Local: ${localLauncherSha})`);
-          }
-        }
-        if (extractedLauncher.includes("spawnSync('powershell.exe'") || extractedLauncher.includes('timeout: 8000')) {
-          throw new Error('ASAR 内仍然残留旧版同步 PowerShell 启动逻辑，拒绝完成安装！');
-        }
-        if (!extractedLauncher.includes('0.8.4-helper-v2')) {
-          throw new Error('ASAR 内未包含最新的 LAUNCHER_VERSION 标识，拒绝完成安装！');
-        }
-
+        // 11. 安装后从目标 ASAR 中重新读取核心主进程模块并核对哈希
         const extractedMain = extractAsarFile(installed, 'dist/meter-main.js').toString('utf8');
         const localMainCandidates = [
           path.join(__dirname, 'meter-main.js'),
@@ -815,47 +752,31 @@ async function install(options = {}) {
           }
         }
 
-        // 12. 同步部署 CLI 辅助定位程序至状态目录与资源目录并核对哈希
-        let helperSha = null;
-        const helperCandidates = [
-          path.join(__dirname, 'scripts', 'cli-window-helper.exe'),
-          path.join(__dirname, '..', 'scripts', 'cli-window-helper.exe'),
-          path.join(stateDir, 'cli-window-helper.exe'),
-          path.join(path.dirname(installed), 'bin', 'cli-window-helper.exe')
-        ];
-        const helperSrc = helperCandidates.find(p => fs.existsSync(p));
-        if (helperSrc) {
-          helperSha = sha(fs.readFileSync(helperSrc));
-          const deployedHelperPath = path.join(stateDir, 'cli-window-helper.exe');
-          if (deployedHelperPath !== helperSrc) {
-            fs.copyFileSync(helperSrc, deployedHelperPath);
-          }
-          const deployedSha = sha(fs.readFileSync(deployedHelperPath));
-          if (deployedSha !== helperSha) {
-            throw new Error(`部署的 helper 哈希不一致 (目标: ${deployedSha}, 源: ${helperSha})`);
-          }
-          const resBinDir = path.join(path.dirname(installed), 'bin');
-          if (fs.existsSync(resBinDir)) {
-            try {
-              fs.copyFileSync(helperSrc, path.join(resBinDir, 'cli-window-helper.exe'));
-            } catch { }
-          }
-        }
-
-        manifest.verifiedLauncherSha256 = installedLauncherSha;
         manifest.verifiedMainSha256 = installedMainSha;
-        manifest.helperSha256 = helperSha;
         manifest.verifiedAt = new Date().toISOString();
 
         fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 
         installCommitted = true;
+
+        // 12. 同步安装无界面自愈守护（Sidecar Keeper），确保官方更新后自动恢复
+        let keeperResult = null;
+        const isTestMode = process.env.AG_METER_TEST_MODE === '1' || process.env.NODE_ENV === 'test';
+        if (!isTestMode && !options.skipKeeperSync && !process.argv.includes('--no-keeper')) {
+          try {
+            const { installKeeper } = require('./meter-keeper');
+            keeperResult = installKeeper({ repoDir: __dirname });
+          } catch (kErr) {
+            keeperResult = { ok: false, error: kErr?.message || String(kErr) };
+          }
+        }
+
         try {
           const { syncLiveRuntimeBundle } = require('./meter-collector');
           syncLiveRuntimeBundle(__dirname, { version: manifest.meterVersion });
         } catch { }
         const hotInjectReport = await tryHotInjectDetailed(options.hotInjectOptions || {});
-        return { ...manifest, liveInjected: hotInjectReport.ok, hotInjectReport };
+        return { ...manifest, keeperResult, liveInjected: hotInjectReport.ok, hotInjectReport };
       } catch (err) {
         // 失败回滚机制：若在改写目标后发生任何校验或保存异常，立即从快照无损回滚还原
         if (!installCommitted && fs.existsSync(snapshotFile)) {
@@ -893,7 +814,7 @@ function getWatchBundleBuildId(baseDir = null) {
   try {
     const root = baseDir || __dirname;
     const h = crypto.createHash('sha256');
-    for (const f of ['meter-core.js', 'meter-renderer.js', 'live-host.js', 'meter-collector.js', 'meter-storage.js', 'meter-proxy.js', 'meter-cli-launcher.js', 'meter-context-unlock.js', 'meter-enhance.js', 'meter-accounts.js', 'macos-binary-utils.js', 'local-api.js', 'modules-config.js', 'asar-engine.js', 'package.json']) {
+    for (const f of ['meter-core.js', 'meter-renderer.js', 'live-host.js', 'meter-collector.js', 'meter-storage.js', 'meter-i18n-host.js', 'meter-commands.js', 'meter-context-breakdown.js', 'meter-keeper.js', 'local-api.js', 'modules-config.js', 'asar-engine.js', 'package.json']) {
       const p = path.join(root, f);
       if (fs.existsSync(p)) h.update(f + ':').update(fs.readFileSync(p));
     }

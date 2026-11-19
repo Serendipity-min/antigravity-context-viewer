@@ -661,13 +661,32 @@
   let cachedMeasuredAvailAt = 0;
   let cachedMeasuredWinWidth = 0;
 
+  function findComposerFooterRightGroup() {
+    try {
+      if (typeof document.querySelectorAll !== 'function') return null;
+      const footers = Array.from(document.querySelectorAll('.agy-composer-footer'));
+      const footer = footers.find(f => {
+        const r = f.getBoundingClientRect?.();
+        return r && r.width > 100 && r.height > 0;
+      });
+      if (!footer) return null;
+      const rightGroup = footer.lastElementChild;
+      if (rightGroup && rightGroup !== footer.firstElementChild) {
+        return { footer, rightGroup };
+      }
+      return { footer, rightGroup: footer };
+    } catch {
+      return null;
+    }
+  }
+
   function ensureHostDocked() {
     if (state.disposed) return;
     if (globalThis.__AGContextMeterActiveHost && globalThis.__AGContextMeterActiveHost !== host) {
       earlyForceDispose();
       return;
     }
-    // 热路径短路：宿主已稳固停靠在预期标题栏内且尺寸未标脏时，跳过 DOM 遍历与强制布局查询
+    // 热路径短路：宿主已稳固停靠在预期容器内且尺寸未标脏时，跳过 DOM 遍历与强制布局查询
     if (
       !layoutMeasurementDirty
       && host.isConnected
@@ -680,6 +699,37 @@
       return;
     }
     syncWindowControlsOverlay();
+    // 优先停靠至底部对话框工具栏 (.agy-composer-footer 右侧组左侧)
+    const composer = findComposerFooterRightGroup();
+    if (composer) {
+      const { footer, rightGroup } = composer;
+      if (host.parentElement !== rightGroup) {
+        if (rightGroup.firstChild) {
+          rightGroup.insertBefore(host, rightGroup.firstChild);
+        } else {
+          rightGroup.appendChild(host);
+        }
+      }
+      host.setAttribute('data-dock', 'flow');
+      try {
+        host.style.removeProperty?.('right');
+        host.style.removeProperty?.('top');
+      } catch { }
+      host.style.right = '';
+      host.style.top = '';
+      if (observedTitlebar !== footer) {
+        observedTitlebar = footer;
+        try {
+          if (resizeObserver) {
+            resizeObserver.disconnect();
+            resizeObserver.observe(footer);
+            if (document.body) resizeObserver.observe(document.body);
+          }
+        } catch { }
+      }
+      updateResponsiveLayout(layoutMeasurementDirty);
+      return;
+    }
     const titlebar = findHostTitlebar();
     if (titlebar) {
       // 自愈保护：若主对话区（div.flex[style*="min-width"]）的 inline flex-grow 被意外清空，立即恢复为 1，绝不覆写其他分栏属性
@@ -826,6 +876,25 @@
       ) {
         return cachedMeasuredAvailWidth;
       }
+      const composer = findComposerFooterRightGroup();
+      if (composer?.footer?.getBoundingClientRect) {
+        const fRect = composer.footer.getBoundingClientRect();
+        if (fRect.width > 0) {
+          const leftW = composer.footer.firstElementChild?.getBoundingClientRect?.().width || 180;
+          let rightBtnsW = 0;
+          for (const child of (composer.rightGroup?.children || [])) {
+            if (child !== host && child.getBoundingClientRect) {
+              rightBtnsW += child.getBoundingClientRect().width;
+            }
+          }
+          const avail = fRect.width - leftW - rightBtnsW - 16;
+          cachedMeasuredAvailWidth = avail;
+          cachedMeasuredAvailAt = now;
+          cachedMeasuredWinWidth = curWinW;
+          layoutMeasurementDirty = false;
+          return avail;
+        }
+      }
       const titlebar = findHostTitlebar();
       if (titlebar?.getBoundingClientRect) {
         const tbRect = titlebar.getBoundingClientRect();
@@ -935,6 +1004,7 @@
       syncSpeedBadgeText();
     }
     renderSessionCost();
+    try { renderKvCacheAndBreakdown(); } catch { }
   }
 
   function updateResponsiveLayout(forceMeasure = false) {
@@ -1071,22 +1141,39 @@
         left = Math.max(snapToDevicePixel(minLeft), left);
 
         const maxWidthPx = Math.max(260, vw - left - 12);
-        const maxHeightPx = Math.max(160, vh - top - 16);
-        const geomKey = `${top}|${left}|${maxWidthPx}|${maxHeightPx}|${isCompact ? 1 : 0}|${dpr}`;
-        if (panelEl._lastPlacedGeomKey === geomKey) return;
-        panelEl._lastPlacedGeomKey = geomKey;
-
-        panelEl.style.top = `${top}px`;
-        panelEl.style.left = `${left}px`;
-        panelEl.style.right = 'auto';
-        panelEl.style.maxWidth = `${maxWidthPx}px`;
-        panelEl.style.maxHeight = `${maxHeightPx}px`;
-        panelEl.style.transformOrigin = 'top right';
+        const openUpward = bRect.top > vh * 0.5;
+        if (openUpward) {
+          const bottomPx = snapToDevicePixel(Math.max(12, vh - bRect.top + 8));
+          const maxHeightPx = Math.max(220, Math.round(bRect.top - 24));
+          const geomKey = `up|${bottomPx}|${left}|${maxWidthPx}|${maxHeightPx}|${isCompact ? 1 : 0}|${dpr}`;
+          if (panelEl._lastPlacedGeomKey === geomKey) return;
+          panelEl._lastPlacedGeomKey = geomKey;
+          panelEl.style.top = 'auto';
+          panelEl.style.bottom = `${bottomPx}px`;
+          panelEl.style.left = `${left}px`;
+          panelEl.style.right = 'auto';
+          panelEl.style.maxWidth = `${maxWidthPx}px`;
+          panelEl.style.maxHeight = `${maxHeightPx}px`;
+          panelEl.style.transformOrigin = 'bottom right';
+        } else {
+          const maxHeightPx = Math.max(160, vh - top - 16);
+          const geomKey = `dn|${top}|${left}|${maxWidthPx}|${maxHeightPx}|${isCompact ? 1 : 0}|${dpr}`;
+          if (panelEl._lastPlacedGeomKey === geomKey) return;
+          panelEl._lastPlacedGeomKey = geomKey;
+          panelEl.style.bottom = 'auto';
+          panelEl.style.top = `${top}px`;
+          panelEl.style.left = `${left}px`;
+          panelEl.style.right = 'auto';
+          panelEl.style.maxWidth = `${maxWidthPx}px`;
+          panelEl.style.maxHeight = `${maxHeightPx}px`;
+          panelEl.style.transformOrigin = 'top right';
+        }
       };
 
       placePanel(el('panel'), 472, el(activeContextAnchorId) || el('badge'));
       placePanel(el('panel-quota'), 460, el(activeQuotaAnchorId) || el('badge-quota'));
       placePanel(el('panel-tokens'), 730, el(activeTokensAnchorId) || el('badge-tokens'));
+      placePanel(el('panel-commands'), 480, el('badge-commands'));
       placePanel(el('overflow-menu'), 220, el('badge-overflow'));
       positionColorPickerPopover();
     } catch { }
@@ -1118,7 +1205,12 @@
   function flushHostDomMutationCheck() {
     domMutationThrottleTimer = null;
     if (state.disposed) return;
-    if (!host.isConnected || host.getAttribute('data-dock') !== 'flow' || !findHostTitlebar()?.contains?.(host)) {
+    const activeFooter = findComposerFooterRightGroup()?.footer;
+    const properlyDocked = activeFooter
+      ? activeFooter.contains(host)
+      : Boolean(findHostTitlebar()?.contains?.(host));
+    if (!host.isConnected || host.getAttribute('data-dock') !== 'flow' || !properlyDocked) {
+      layoutMeasurementDirty = true;
       scheduleLayoutSync();
     }
     scheduleHostModelSync();
@@ -1256,18 +1348,24 @@
   }
 
   function isAnyPanelOpen() {
-    return !el('panel').hidden || !el('panel-tokens').hidden || !el('panel-quota')?.hidden;
+    return !el('panel').hidden || !el('panel-tokens').hidden || !el('panel-quota')?.hidden || !el('panel-commands')?.hidden;
+  }
+
+  function closeAllPanels() {
+    showPanel(null);
   }
 
   function showPanel(target) {
     const pContext = el('panel');
     const pTokens = el('panel-tokens');
     const pQuota = el('panel-quota');
+    const pCommands = el('panel-commands');
     const pOverflow = el('overflow-menu');
     const bContext = el('badge');
     const bSpeed = el('badge-speed');
     const bTokens = el('badge-tokens');
     const bQuota = el('badge-quota');
+    const bCommands = el('badge-commands');
     const bOverflow = el('badge-overflow');
 
     hideUpdatePopover();
@@ -1276,6 +1374,28 @@
     if (target !== 'quota' && typeof clearQuotaBarChargeAnimations === 'function') {
       clearQuotaBarChargeAnimations();
     }
+
+    if (target === 'commands') {
+      hideContextTooltip();
+      closeColorPicker();
+      setPlanDetailExpanded(false, { skipReposition: true });
+      pContext.hidden = true;
+      pTokens.hidden = true;
+      if (pQuota) pQuota.hidden = true;
+      bContext.setAttribute('aria-expanded', 'false');
+      bSpeed?.setAttribute('aria-expanded', 'false');
+      bTokens.setAttribute('aria-expanded', 'false');
+      bQuota?.setAttribute('aria-expanded', 'false');
+      bCommands?.setAttribute('aria-expanded', 'true');
+      syncHostStackingElevation(true);
+      positionFloatingPanels();
+      if (pCommands) pCommands.hidden = false;
+      if (typeof CommandsHubController !== 'undefined') void CommandsHubController.refresh(false);
+      setTimeout(() => { try { el('cmd-hub-search')?.focus(); } catch {} }, 40);
+      return;
+    }
+    if (pCommands) pCommands.hidden = true;
+    bCommands?.setAttribute('aria-expanded', 'false');
 
     if (target === 'tokens') {
       hideContextTooltip();
@@ -6314,6 +6434,9 @@
   }
 
   async function refreshUnlockStatus() {
+    return null;
+  }
+  async function _removedRefreshUnlockStatus() {
     const thisSeq = ++unlockReqSeq;
     try {
       const currentObservedBudget = (state.latest?.budget && state.latest.budget > 0)
@@ -7747,7 +7870,10 @@
     renderEnhanceSectionUI();
   }
 
-  async function refreshEnhanceStatus(syncDrafts = true, { forceSyncDrafts = false, forceRefresh = false } = {}) {
+  async function refreshEnhanceStatus() {
+    return null;
+  }
+  async function _removedRefreshEnhanceStatus(syncDrafts = true, { forceSyncDrafts = false, forceRefresh = false } = {}) {
     const seq = ++enhanceStatusReqSeq;
     try {
       const res = await invokeEnhanceApi('status', forceRefresh ? { forceRefresh: true } : {});
@@ -8597,45 +8723,39 @@
   }
 
   async function setClientLanguageTarget(wantChinese) {
-    if (Boolean(wantChinese) === Boolean(currentChineseEnabled)) return;
-    if (btnToggleChineseModule) {
-      btnToggleChineseModule.disabled = true;
-      btnToggleChineseModule.textContent = t('mod.processing');
-    }
+    const targetZh = Boolean(wantChinese);
+    const fbEl = el('client-lang-live-feedback');
     try {
-      await yieldForSettingsPaint();
-      const res = await invokeModulesApi('toggle', 'chinese', Boolean(wantChinese), {
-        language: wantChinese ? 'zh-CN' : 'en',
-        brandTitle: currentBrandTitle
-      });
-      if (!res || !res.ok) {
-        const errPayload = res;
-        showEnhanceResultBox(false, () => resolveSettingsErrorText(errPayload, 'mod.zh.toggleFail'));
-      } else {
-        needsRestartAfterApply = Boolean(res.restartRequired);
-        renderClientStatusBar();
-        if (res.restartRequired) {
-          showEnhanceResultBox(
-            true,
-            () => t(wantChinese ? 'mod.zh.savedEnableRestart' : 'mod.zh.savedDisableRestart'),
-            { needsHostRestart: true }
-          );
+      if (typeof HostI18nController !== 'undefined') {
+        if (targetZh) {
+          const r = await HostI18nController.enable();
+          if (!r || !r.ok) {
+            if (fbEl) fbEl.textContent = `开启汉化失败：${r?.error || '未能加载词典'}`;
+            return;
+          }
         } else {
-          showEnhanceResultBox(
-            true,
-            () => translateBackendText(res.message || '已同步回当前运行状态，无需重启'),
-            { needsHostRestart: false }
-          );
+          HostI18nController.disable();
         }
       }
-      await refreshModulesDisplay();
-    } catch (e) {
-      showEnhanceResultBox(false, () => `${t('mod.zh.toggleFail')}: ${resolveSettingsErrorText(e, 'msg.unknownErr')}`);
-    } finally {
-      if (btnToggleChineseModule) {
-        btnToggleChineseModule.disabled = false;
-        btnToggleChineseModule.textContent = currentChineseEnabled ? t('mod.zh.btnDisable') : t('mod.zh.btnEnable');
+      currentChineseEnabled = targetZh;
+      syncClientLanguageButtons();
+      if (chineseBadge) {
+        chineseBadge.textContent = targetZh ? '已开启 (实时)' : '英文原文';
+        chineseBadge.className = `key-pill ${targetZh ? 'pill-ok' : 'pill-muted'}`;
       }
+      const res = await invokeModulesApi('toggle', 'chinese', targetZh, {
+        language: targetZh ? 'zh-CN' : 'en'
+      });
+      if (fbEl) {
+        fbEl.textContent = targetZh
+          ? `✅ 已实时切换为客户端简体中文（v2.33.0+ ${HostI18nController?.getMeta?.()?.exactCount || 4264}+ 词条，免重启生效）。`
+          : '✅ 已实时还原为官方英文原版界面（免重启生效）。';
+      }
+      if (!res || !res.ok) {
+        try { localStorage?.setItem('ag_personal_host_i18n_zh', targetZh ? '1' : '0'); } catch {}
+      }
+    } catch (e) {
+      if (fbEl) fbEl.textContent = `切换异常：${e?.message || e}`;
     }
   }
 
@@ -10337,7 +10457,7 @@
   }
 
   function openGithubRepo(pathSuffix = '') {
-    const url = 'https://github.com/elviscjn-cjn/antigravity-context-viewer' + pathSuffix;
+    const url = 'https://github.com/Serendipity-min/antigravity-context-viewer' + pathSuffix;
     if (typeof window !== 'undefined' && typeof window.contextMeterAPI?.openExternal === 'function') {
       window.contextMeterAPI.openExternal(url);
     } else {
@@ -10661,6 +10781,229 @@
   });
 
   /* @INSERT_HEATMAP_MODULE */
+  /* @INSERT_HOST_I18N_MODULE */
+  /* @INSERT_COMMANDS_MODULE */
+  /* @INSERT_AUTO_RETRY_MODULE */
+
+  // ============================================================================
+  // Personal Suite Coordinator: KV Cache, Breakdown, Keeper, Quota Mode & Cmd Hub
+  // ============================================================================
+  let prevTurnCacheHitRate = null;
+  let lastBreakdownRenderSig = '';
+  let personalQuotaRingMode = (() => {
+    try { return window.localStorage?.getItem('ag_personal_quota_ring_mode') || 'auto'; } catch { return 'auto'; }
+  })();
+
+  function renderKvCacheAndBreakdown() {
+    // 1. KV Cache Hit Rate (PR #37 accurate formula)
+    const rateEl = el('kv-cache-rate');
+    const detailEl = el('kv-cache-detail');
+    const badgeEl = el('kv-cache-badge');
+    const alertEl = el('kv-cache-drop-alert');
+    if (rateEl && detailEl && badgeEl) {
+      const stats = state.scan?.cacheHitStats || null;
+      const d = state.latest || null;
+      let hitRate = stats?.hitRate ?? d?.cacheHitRate ?? null;
+      let cachedTok = stats?.cacheReadTokens ?? d?.cached ?? 0;
+      let uncachedTok = stats?.uncachedInput ?? Math.max(0, (d?.input || 0) - cachedTok);
+      if (hitRate === null && (cachedTok > 0 || uncachedTok > 0)) {
+        hitRate = Number(((cachedTok / (cachedTok + uncachedTok)) * 100).toFixed(1));
+      }
+      if (hitRate !== null && Number.isFinite(hitRate)) {
+        rateEl.textContent = `${hitRate.toFixed(1)}%`;
+        const tier = hitRate >= 80 ? 'good' : (hitRate >= 40 ? 'info' : 'warn');
+        badgeEl.textContent = hitRate >= 80 ? '高命中' : (hitRate >= 40 ? '中等命中' : '低命中 / 冷启动');
+        badgeEl.className = `key-pill ${tier === 'good' ? 'pill-ok' : (tier === 'info' ? 'pill-info' : 'pill-warn')}`;
+        detailEl.textContent = `缓存命中 ${fmt(cachedTok)} · 新增输入 ${fmt(uncachedTok)}`;
+        if (alertEl) {
+          if (prevTurnCacheHitRate !== null && (prevTurnCacheHitRate - hitRate) >= 25) {
+            alertEl.textContent = `⚠️ KV 缓存命中率较前序请求下降 ${(prevTurnCacheHitRate - hitRate).toFixed(1)} 个百分点（可能因上下文变化或压缩）。`;
+            alertEl.hidden = false;
+          } else {
+            alertEl.hidden = true;
+          }
+        }
+        prevTurnCacheHitRate = hitRate;
+      } else {
+        rateEl.textContent = '—';
+        badgeEl.textContent = '待生成';
+        badgeEl.className = 'key-pill pill-muted';
+        detailEl.textContent = '等待本轮模型返回缓存统计…';
+        if (alertEl) alertEl.hidden = true;
+      }
+    }
+
+    // 2. Authoritative Context Breakdown (SQLite gen_metadata protobuf)
+    const bdCard = el('ctx-breakdown-card');
+    const bdBadge = el('ctx-breakdown-badge');
+    const bdLegend = el('ctx-breakdown-legend');
+    const bdList = el('ctx-breakdown-list');
+    const bdFiles = el('ctx-breakdown-files');
+    if (!bdCard || !bdList) return;
+    const bd = state.scan?.contextBreakdown;
+    const bdSig = bd ? `${bd.available}|${bd.totalTokens}|${bd.categories?.length}|${bd.openedFiles?.skillFiles?.length}` : 'none';
+    if (bdSig === lastBreakdownRenderSig) return;
+    lastBreakdownRenderSig = bdSig;
+
+    if (!bd || !bd.available || !bd.hasBreakdown) {
+      if (bdBadge) { bdBadge.textContent = '暂无分组数据'; bdBadge.className = 'key-pill pill-muted'; }
+      bdList.innerHTML = '<div style="grid-column:1/-1;font-size:11px;color:var(--ag-text-muted)">发送一轮对话后将自动解析本机 SQLite 权威上下文分组。</div>';
+      if (bdLegend) bdLegend.innerHTML = '';
+      if (bdFiles) bdFiles.hidden = true;
+      return;
+    }
+
+    const total = Math.max(1, bd.totalTokens || 1);
+    const sysPct = Math.round(((bd.groups?.system || 0) / total) * 100);
+    const customPct = Math.round(((bd.groups?.custom || 0) / total) * 100);
+    const chatPct = Math.max(0, 100 - sysPct - customPct);
+    const segSys = el('ctx-bd-seg-sys');
+    const segCustom = el('ctx-bd-seg-custom');
+    const segChat = el('ctx-bd-seg-chat');
+    if (segSys) segSys.style.width = `${sysPct}%`;
+    if (segCustom) segCustom.style.width = `${customPct}%`;
+    if (segChat) segChat.style.width = `${chatPct}%`;
+    if (bdBadge) {
+      bdBadge.textContent = `${fmt(bd.totalTokens)} tok`;
+      bdBadge.className = 'key-pill pill-info';
+    }
+    if (bdLegend) {
+      bdLegend.innerHTML = `
+        <span><b style="color:#6366f1">●</b> 系统 ${fmt(bd.groups?.system || 0)} (${sysPct}%)</span>
+        <span><b style="color:#10b981">●</b> 规则/技能/MCP ${fmt(bd.groups?.custom || 0)} (${customPct}%)</span>
+        <span><b style="color:#38bdf8">●</b> 对话与工具 ${fmt(bd.groups?.chat || 0)} (${chatPct}%)</span>
+      `;
+    }
+    bdList.innerHTML = (bd.categories || []).slice(0, 10).map(c => `
+      <div class="ctx-bd-item">
+        <span class="ctx-bd-item-lbl">${c.label}</span>
+        <span class="ctx-bd-item-val">${fmt(c.tokens)} (${c.sharePct}%)</span>
+      </div>
+    `).join('');
+
+    if (bdFiles) {
+      const opened = bd.openedFiles || {};
+      const lines = [];
+      if (opened.skillFiles?.length) lines.push(`已读技能 (${opened.skillFiles.length}): ${opened.skillFiles.map(p => p.split(/[\\/]/).slice(-2).join('/')).join(', ')}`);
+      if (opened.artifactFiles?.length) lines.push(`已读工件 (${opened.artifactFiles.length}): ${opened.artifactFiles.map(p => p.split(/[\\/]/).pop()).join(', ')}`);
+      if (opened.knowledgeFiles?.length) lines.push(`已读知识 (${opened.knowledgeFiles.length}): ${opened.knowledgeFiles.map(p => p.split(/[\\/]/).pop()).join(', ')}`);
+      if (lines.length) {
+        bdFiles.textContent = lines.join(' · ');
+        bdFiles.hidden = false;
+      } else {
+        bdFiles.hidden = true;
+      }
+    }
+  }
+
+  async function refreshKeeperUi() {
+    const badge = el('keeper-badge');
+    const desc = el('keeper-status-desc');
+    const btn = el('btn-toggle-keeper');
+    if (!badge || !btn) return;
+    try {
+      let res = null;
+      if (window.contextMeterAPI?.getKeeperStatus) {
+        res = await window.contextMeterAPI.getKeeperStatus();
+      } else {
+        const live = getLiveBridge();
+        if (live) {
+          const r = await fetch(`http://127.0.0.1:${live.port}/keeper-status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-AG-Context-Token': live.token },
+            body: '{}'
+          });
+          res = await r.json();
+        }
+      }
+      if (!res || !res.ok) {
+        badge.textContent = '未连接';
+        badge.className = 'key-pill pill-muted';
+        return;
+      }
+      const installed = Boolean(res.installed);
+      badge.textContent = installed ? '已启用守护' : '未安装';
+      badge.className = `key-pill ${installed ? 'pill-ok' : 'pill-muted'}`;
+      btn.textContent = installed ? '卸载守护进程' : '安装并启用守护';
+      btn.dataset.keeperInstalled = installed ? '1' : '0';
+      if (desc) {
+        const lastInfo = res.lastState?.checkedAt
+          ? `最近巡检：${res.lastState.checkedAt.replace('T', ' ').slice(0, 19)}（状态：${res.lastState.lastResult || '正常'}）`
+          : '通过官方无界面 Sidecar 机制，在 Antigravity 官方更新后下次启动时自动重装本套件。';
+        desc.textContent = installed ? `✅ 守护插件已就绪（${res.pluginId}）。${lastInfo}` : lastInfo;
+      }
+    } catch {}
+  }
+
+  function initPersonalSuiteUi() {
+    // 1. / Commands Hub triggers
+    el('badge-commands')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = !el('panel-commands')?.hidden;
+      showPanel(open ? null : 'commands');
+    });
+    el('overflow-commands-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showPanel('commands');
+    });
+    el('close-commands')?.addEventListener('click', () => showPanel(null));
+    CommandsHubController.bindEvents();
+
+    // 2. 503 Auto-Retry controller
+    AutoRetryController.init();
+
+    // 3. Sidecar Keeper controls
+    el('btn-toggle-keeper')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const installed = btn?.dataset?.keeperInstalled === '1';
+      if (btn) btn.disabled = true;
+      try {
+        if (window.contextMeterAPI?.toggleKeeper) {
+          await window.contextMeterAPI.toggleKeeper(!installed);
+        }
+        await refreshKeeperUi();
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+    el('btn-refresh-keeper')?.addEventListener('click', () => { void refreshKeeperUi(); });
+    void refreshKeeperUi();
+
+    // 4. Quota 5h / Weekly ring switcher (Issue #41)
+    const qModeBar = el('quota-ring-mode-bar');
+    const syncQuotaModeButtons = () => {
+      qModeBar?.querySelectorAll('[data-quota-ring-mode]').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-quota-ring-mode') === personalQuotaRingMode);
+      });
+    };
+    syncQuotaModeButtons();
+    qModeBar?.addEventListener('click', (e) => {
+      const btn = e.target?.closest?.('[data-quota-ring-mode]');
+      if (!btn) return;
+      personalQuotaRingMode = btn.getAttribute('data-quota-ring-mode') || 'auto';
+      try { window.localStorage?.setItem('ag_personal_quota_ring_mode', personalQuotaRingMode); } catch {}
+      syncQuotaModeButtons();
+      if (typeof renderQuotaBoard === 'function') renderQuotaBoard();
+    });
+
+    // 5. Auto-boot live reversible Host Chinese Localization ONLY if enabled in config
+    const bootCfg = typeof window !== 'undefined' ? window.__AGContextMeterHostI18nConfig : null;
+    let shouldEnableZh = Boolean(bootCfg && bootCfg.enabled === true);
+    if (!bootCfg) {
+      try {
+        shouldEnableZh = window.localStorage?.getItem('ag_personal_host_i18n_zh') === '1';
+      } catch {}
+    }
+    currentChineseEnabled = shouldEnableZh;
+    syncClientLanguageButtons();
+    if (chineseBadge) {
+      chineseBadge.textContent = shouldEnableZh ? '已开启 (实时)' : '英文原文';
+      chineseBadge.className = `key-pill ${shouldEnableZh ? 'pill-ok' : 'pill-muted'}`;
+    }
+    if (shouldEnableZh) {
+      void HostI18nController.enable();
+    }
+  }
   function updateRingAndBubble(d, session, pct, danger, stale, incomplete) {
     const ringFill = el('ring-fill');
     const tipTitle = el('ctx-tip-title');
@@ -11844,6 +12187,7 @@
       return;
     }
     renderSessionCost();
+    try { renderKvCacheAndBreakdown(); } catch { }
 
     const d = state.latest, session = state.scan?.session;
     const disp = resolveDisplayStatus(d, session);
@@ -13366,12 +13710,24 @@
           isResetPassed: rm.isResetPassed
         };
       });
-      const sel = (typeof selectPrimaryQuotaBucket === 'function')
-        ? selectPrimaryQuotaBucket(nextBuckets)
-        : (() => {
-            const priced = nextBuckets.filter(b => b.remainingFraction !== null).sort((a, b) => a.remainingFraction - b.remainingFraction);
-            return { primaryBucket: priced[0] || nextBuckets[0] || null, selectionReason: priced.length <= 1 ? 'single_window' : 'tighter_window' };
-          })();
+      const sel = (() => {
+        if (personalQuotaRingMode === '5h' || personalQuotaRingMode === 'weekly') {
+          const wantWeekly = personalQuotaRingMode === 'weekly';
+          const matched = nextBuckets.find(b => {
+            const label = String(b.windowShort || b.windowLabel || b.bucketId || '').toLowerCase();
+            return wantWeekly
+              ? (label.includes('7d') || label.includes('week') || label.includes('周'))
+              : (label.includes('5h') || label.includes('hour') || label.includes('时'));
+          });
+          if (matched) return { primaryBucket: matched, selectionReason: wantWeekly ? 'user_weekly' : 'user_5h' };
+        }
+        return (typeof selectPrimaryQuotaBucket === 'function')
+          ? selectPrimaryQuotaBucket(nextBuckets)
+          : (() => {
+              const priced = nextBuckets.filter(b => b.remainingFraction !== null).sort((a, b) => a.remainingFraction - b.remainingFraction);
+              return { primaryBucket: priced[0] || nextBuckets[0] || null, selectionReason: priced.length <= 1 ? 'single_window' : 'tighter_window' };
+            })();
+      })();
       const pb = sel.primaryBucket || p.primaryBucket || null;
       return {
         ...p,
@@ -14955,7 +15311,10 @@
     if (accountsUiState.removeModal?.open) renderAccountRemoveModal();
   }
 
-  async function refreshAccountsOverview({ silent = true, refreshAllRemote = false } = {}) {
+  async function refreshAccountsOverview() {
+    return null;
+  }
+  async function _removedRefreshAccountsOverview({ silent = true, refreshAllRemote = false } = {}) {
     if (state.disposed) return null;
     try {
       const hasIpc = typeof window !== 'undefined' && typeof window.contextMeterAPI?.getAccountsOverview === 'function';
@@ -15793,6 +16152,8 @@
     isDisposedForTest: () => Boolean(state.disposed),
     dispose() {
       earlyForceDispose();
+      try { HostI18nController.dispose(); } catch { }
+      try { AutoRetryController.dispose(); } catch { }
       clearQuotaTimers();
       clearInterval(timer);
       clearLivePendingRequestWait();
@@ -15840,6 +16201,7 @@
     }
   });
   installRequestInterceptor();
+  try { initPersonalSuiteUi(); } catch { }
   __chartsReady = true;
   render();
   tick();

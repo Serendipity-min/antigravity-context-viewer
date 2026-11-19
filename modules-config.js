@@ -16,10 +16,9 @@ const https = require('https');
 const crypto = require('crypto');
 const { getStateDir } = require('./asar-engine');
 const { safeWriteJsonSync } = require('./meter-storage');
-const { parseAndValidateProxyUrl } = require('./meter-proxy');
 
-const SCHEMA_VERSION = '0.8.8';
-const FALLBACK_PROJECT_VERSION = '0.8.8';
+const SCHEMA_VERSION = '0.9.0';
+const FALLBACK_PROJECT_VERSION = '0.9.0';
 
 function resolveProjectVersion() {
   for (const pkgPath of [
@@ -639,16 +638,22 @@ function inspectDiskModules(customPath = null, options = {}) {
   const meterFilesOk = normalizedEntries.has('/dist/meter-main.js') && normalizedEntries.has('/dist/meter-core.js');
   const meterReady = meterInjected && meterPreload && meterFilesOk;
 
-  // 2. 汉化模块深度判定
-  const chineseHasTags = preloadStr.includes(TAGS.CHINESE_START) && preloadStr.includes(TAGS.CHINESE_END);
+  // 2. 汉化模块深度判定（优先支持新的主进程 IPC + 分层词典模式，兼顾旧版 preload 检测）
+  const chineseIpcReady = normalizedEntries.has('/dist/meter-i18n-host.js')
+    && (normalizedEntries.has('/dist/i18n/zh-CN.v233.json') || normalizedEntries.has('/dist/i18n/zh-CN.json'));
+  const chineseHasTags = chineseIpcReady || (preloadStr.includes(TAGS.CHINESE_START) && preloadStr.includes(TAGS.CHINESE_END));
   let chineseStatus = 'not_injected';
   let chineseReady = false;
   let chineseReason = null;
 
-  if (!chineseHasTags) {
+  if (chineseIpcReady) {
+    chineseStatus = 'ready';
+    chineseReady = true;
+    chineseReason = null;
+  } else if (!chineseHasTags) {
     chineseStatus = 'not_injected';
     chineseReady = false;
-    chineseReason = '磁盘尚未注入汉化脚本代码';
+    chineseReason = '磁盘尚未注入汉化组件';
   } else {
     // 检查字典与运行时代码完整性
     const hasDictData = preloadStr.includes('__AGY_I18N_DATA__') && preloadStr.includes('_dictData');
@@ -742,7 +747,7 @@ function getHostCoreBuildId(baseDir = null) {
   try {
     const root = baseDir || __dirname;
     const h = crypto.createHash('sha256');
-    for (const f of ['cli.js', 'install.js', 'restore.js', 'live-host.js', 'local-api.js', 'meter-collector.js', 'meter-storage.js', 'meter-proxy.js', 'meter-cli-launcher.js', 'meter-context-unlock.js', 'meter-enhance.js', 'macos-binary-utils.js', 'modules-config.js', 'asar-engine.js', 'package.json']) {
+    for (const f of ['cli.js', 'install.js', 'restore.js', 'live-host.js', 'local-api.js', 'meter-collector.js', 'meter-storage.js', 'meter-i18n-host.js', 'meter-commands.js', 'meter-context-breakdown.js', 'meter-keeper.js', 'modules-config.js', 'asar-engine.js', 'package.json']) {
       const p = path.join(root, f);
       if (fs.existsSync(p)) h.update(f + ':').update(fs.readFileSync(p));
     }
@@ -758,12 +763,10 @@ module.exports = {
   DEFAULT_CONFIG,
   normalizeBrandTitle,
   normalizeClientLanguage,
-  parseAndValidateProxyUrl,
   getModulesConfigPath,
   loadModulesConfig,
   saveModulesConfig,
   detectAndMigrateLegacyConfigs,
-  testProxyHealth,
   acquireFileLock,
   inspectDiskModules,
   invalidateDiskModulesCache,

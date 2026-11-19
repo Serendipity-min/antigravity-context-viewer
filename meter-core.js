@@ -425,9 +425,10 @@
       };
     }
 
-    // 2. 模型或额度池耗尽 (Quota Exhausted)
+    // 2. 模型或额度池耗尽 (Quota Exhausted) — 先判定通用取消流，防止 context canceled 被 0 额度快照误判为额度耗尽 (PR #38)
+    const canceledMatch = /(?:\bcontext cancel(?:l)?ed\b|\buser cancel(?:l)?ed\b|request was aborted|AbortError)/i.test(error);
     const explicitQuotaMatch = /(?:quota\s*(?:exceeded|reached|limit|exhausted)|out\s+of\s+quota|exhausted.*(?:capacity|quota)|resource_exhausted.*(?:quota|capacity|billing)|free\s+tier\s+quota|daily\s+quota|weekly\s+quota)/i.test(error);
-    const quotaZeroEvidence = Boolean(modelQuota && typeof modelQuota.remainingFraction === 'number' && modelQuota.remainingFraction <= 0.0001);
+    const quotaZeroEvidence = !canceledMatch && Boolean(modelQuota && typeof modelQuota.remainingFraction === 'number' && modelQuota.remainingFraction <= 0.0001);
 
     if (explicitQuotaMatch || quotaZeroEvidence) {
       const resetTimeZh = modelQuota?.resetTime ? formatResetTimeZh(modelQuota.resetTime) : null;
@@ -464,14 +465,13 @@
       };
     }
 
-    // 4. 用户主动取消或请求中断 (Canceled)
-    const canceledMatch = /(?:context canceled by user|user cancelled|request was aborted|AbortError)/i.test(error);
+    // 4. 用户主动取消或请求中断 (Canceled — PR #38 中性归类)
     if (canceledMatch) {
       return {
         kind: 'canceled',
-        title: '已取消',
-        badgeText: '已取消',
-        detail: '本次生成请求已由用户或系统主动取消',
+        title: '请求中断',
+        badgeText: '已中断',
+        detail: '本次生成请求已中断或取消，已保留此前有效上下文统计',
         serviceLimit: null,
         retryAfterSec: null,
         resetTime: null,
@@ -570,13 +570,19 @@
     const serviceLimit = classification.serviceLimit || null;
 
     const usage = lastRetry ? lastRetry.usage : m.usage;
-    const input = number(usage?.inputTokens), cached = number(usage?.cacheReadTokens), output = number(usage?.outputTokens);
+    const input = number(usage?.inputTokens);
+    const cacheWrite = number(usage?.cacheCreationInputTokens ?? usage?.cacheWriteTokens ?? usage?.cacheWriteInputTokens);
+    const cached = number(usage?.cacheReadTokens);
+    const output = number(usage?.outputTokens);
     const thinking = number(usage?.thinkingOutputTokens), responseTokens = number(usage?.responseOutputTokens);
-    const hasInput = (input || 0) + (cached || 0) > 0;
+    const uncachedInput = (input || 0) + (cacheWrite || 0);
+    const totalPromptInput = uncachedInput + (cached || 0);
+    const hasInput = totalPromptInput > 0;
+    const cacheHitRate = totalPromptInput > 0 ? Number((((cached || 0) / totalPromptInput) * 100).toFixed(1)) : null;
 
     // 解耦维度：错误发生时不强制归零已有上下文用量
     const prevContext = options.previousValidContext || null;
-    let actual = hasInput && !error ? (input || 0) + (cached || 0) + (output || 0) : null;
+    let actual = hasInput && !error ? totalPromptInput + (output || 0) : null;
     if (actual === null && prevContext && prevContext.actual != null && !exceeded) {
       actual = prevContext.actual;
     }
@@ -651,8 +657,11 @@
       error,
       errorClassification: classification,
       estimated: actual === null,
-      input: hasInput ? (input || 0) + (cached || 0) : (prevContext?.input || null),
+      input: hasInput ? totalPromptInput : (prevContext?.input || null),
+      uncachedInput: hasInput ? uncachedInput : (prevContext?.uncachedInput ?? null),
+      cacheWrite: cacheWrite || prevContext?.cacheWrite || 0,
       cached: cached || prevContext?.cached || 0,
+      cacheHitRate: cacheHitRate !== null ? cacheHitRate : (prevContext?.cacheHitRate ?? null),
       output: output ?? (prevContext?.output ?? null),
       percent: percentVal,
       model,
@@ -4874,8 +4883,11 @@
       if (u.protocol !== 'https:') return false;
       if (u.hostname === 'github.com') {
         const pathname = u.pathname.replace(/\/+$/, '');
-        const repoPrefix = '/elviscjn-cjn/antigravity-context-viewer';
-        return pathname === repoPrefix || pathname.startsWith(repoPrefix + '/');
+        const allowedPrefixes = [
+          '/Serendipity-min/antigravity-context-viewer',
+          '/elviscjn-cjn/antigravity-context-viewer'
+        ];
+        return allowedPrefixes.some(p => pathname === p || pathname.startsWith(p + '/'));
       }
       if (u.hostname === 'linux.do') {
         const pathname = u.pathname.replace(/\/+$/, '');

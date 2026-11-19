@@ -350,6 +350,7 @@ test('collectTokenHistoryAsync runs dual-source scan and returns valid data stru
 
     const data = await collectTokenHistoryAsync({
       force: true,
+      includeCli: true,
       agDir: tempDir,
       agCliDir: tempCliDir,
       userStatus: { userTier: { name: 'Pro' }, planStatus: { availablePromptCredits: 500 } }
@@ -952,69 +953,7 @@ test('plugin settings persistence: distinct country, subscriptionRegion, currenc
   }
 });
 
-test('CLI resolution & workspace handling: Chinese/space paths, fallback directory, and missing CLI error feedback', async () => {
-  const fs = require('node:fs');
-  const os = require('node:os');
-  const path = require('node:path');
-  const { pathToFileURL } = require('node:url');
-  const {
-    resolveCliExecutable,
-    resolveCliWorkspace,
-    launchCliSession
-  } = require('./meter-collector');
-
-  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ag-cli-test-'));
-  try {
-    // 1. 创建含中文与空格的项目目录及模拟 CLI 文件
-    const cnSpaceDir = path.join(tmpRoot, '测试 项目 (中文 Space Dir)');
-    fs.mkdirSync(cnSpaceDir, { recursive: true });
-    const fakeCli = path.join(tmpRoot, 'agy.exe');
-    fs.writeFileSync(fakeCli, 'fake-binary', 'utf8');
-
-    // 2. 验证显式传入及 file:// URI 编码的中文空格路径解析
-    const encodedUri = pathToFileURL(cnSpaceDir).href;
-    const wsFromUri = await resolveCliWorkspace({ cwd: encodedUri });
-    assert.equal(wsFromUri.ok, true);
-    assert.equal(wsFromUri.cwd, cnSpaceDir);
-
-    // 3. 验证 dryRun 启动命令组装与参数传递
-    const dryRes = await launchCliSession({
-      cliPath: fakeCli,
-      cwd: cnSpaceDir,
-      model: 'gemini-3.8-flash-high',
-      args: ['--continue'],
-      dryRun: true
-    });
-    assert.equal(dryRes.ok, true);
-    assert.equal(dryRes.exePath, fakeCli);
-    assert.equal(dryRes.cwd, cnSpaceDir);
-    assert.deepEqual(dryRes.args, ['--model', 'gemini-3.8-flash-high', '--continue']);
-
-    // 4. 验证 CLI 不存在时的明确报错反馈
-    const missingCliPath = path.join(tmpRoot, 'nonexistent-dir', 'missing-agy.exe');
-    const missingRes = await launchCliSession({
-      cliPath: missingCliPath,
-      cwd: cnSpaceDir
-    });
-    assert.equal(missingRes.ok, false);
-    assert.equal(missingRes.code, 'CLI_NOT_FOUND');
-    assert.match(missingRes.error, /不存在|不可用/);
-
-    // 5. 验证未打开项目时的默认目录回退
-    const fallbackWs = await resolveCliWorkspace({
-      cascadeId: '00000000-0000-0000-0000-000000000000',
-      agDir: tmpRoot,
-      appDataDir: tmpRoot,
-      configDir: tmpRoot,
-      defaultDir: cnSpaceDir
-    });
-    assert.equal(fallbackWs.ok, true);
-    assert.equal(fallbackWs.cwd, cnSpaceDir);
-    assert.equal(fallbackWs.source, 'default_fallback');
-  } finally {
-    fs.rmSync(tmpRoot, { recursive: true, force: true });
-  }
-});
+// (Desktop-only personal suite: Antigravity CLI launcher removed)
 
 // ============================================================================
 // 错误分类与状态识别行为测试
@@ -1775,6 +1714,7 @@ test('ledger & transcript alignment: zero double-counting of unpriced/priced cal
 
     const data = await collectTokenHistoryAsync({
       force: true,
+      includeCli: true,
       agDir: tempAgDir,
       agCliDir: tempCliDir,
       userStatus: { userTier: { name: 'Pro' }, planStatus: { availablePromptCredits: 500 } }
@@ -2001,6 +1941,7 @@ test('v2 archive-only usage (200 archived tokens + 100 priced ledger tokens) rep
 
     const data = await collectTokenHistoryAsync({
       force: true,
+      includeCli: true,
       agDir: tempAgDir,
       agCliDir: tempCliDir,
       userStatus: { userTier: { name: 'Pro' }, planStatus: { availablePromptCredits: 500 } }
@@ -4125,6 +4066,7 @@ test('collectTokenHistoryAsync aggregates WSL desktop/cli sessions without doubl
 
     const res = await collectTokenHistoryAsync({
       force: true,
+      includeCli: true,
       agDir: winAgDir,
       agCliDir: winCliDir,
       wslRoots: [wslRoot],

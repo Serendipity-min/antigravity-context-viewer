@@ -21,37 +21,31 @@ const origFsMethods = {
 };
 const { safeWriteJsonSync, safeReadJsonSync, withFileLockSync } = require('./meter-storage');
 const {
-  buildCliProxyEnv,
-  detectProxyConfig,
-  parseAndValidateProxyUrl,
-  matchesNoProxy,
-  redactProxyUrl,
-  openSocks5Tunnel,
-  openHttpConnectTunnel,
-  classifyRequestTimeoutPhase,
-  sanitizeDiagnosticErrorText
-} = require('./meter-proxy');
-const {
-  conversationWorkspaces,
-  extractWorkspacePathFromUri,
-  extractWorkspaceFromTrajectory,
-  extractWorkspaceFromTranscriptFile,
-  resolveCliExecutable,
-  resolveCliWorkspace,
-  launchCliSession
-} = require('./meter-cli-launcher');
-const {
-  analyzeBinaryAsync: getContextUnlockStatus,
-  analyzeBinary,
-  analyzeBinaryAsync,
-  applyUnlock: applyContextUnlock,
-  applyUnlockAsync: applyContextUnlockAsync,
-  restoreUnlock: restoreContextUnlock,
-  restoreUnlockAsync: restoreContextUnlockAsync,
-  validateContextLimit,
-  DEFAULT_CHECKPOINT_TOKENS,
-  AUTHOR_INFO: CONTEXT_UNLOCK_AUTHOR
-} = require('./meter-context-unlock');
+  readConversationContextBreakdown,
+  calculateCacheHitStats
+} = require('./meter-context-breakdown');
+
+const DEFAULT_CHECKPOINT_TOKENS = 256000;
+function validateContextLimit(limit) {
+  const n = Number(limit);
+  if (!Number.isFinite(n) || n < 32000 || n > 2000000) return { ok: false, error: 'invalid limit' };
+  return { ok: true, limitTokens: Math.round(n) };
+}
+const conversationWorkspaces = new Map();
+function extractWorkspaceFromTrajectory(trajectory) {
+  try {
+    const uris = trajectory?.metadata?.workspaceUris || trajectory?.workspaceUris || [];
+    for (const raw of (Array.isArray(uris) ? uris : [])) {
+      if (typeof raw === 'string' && raw.trim()) {
+        return raw.startsWith('file:') ? fileURLToPath(raw) : raw.trim();
+      }
+    }
+  } catch {}
+  return null;
+}
+function sanitizeDiagnosticErrorText(text) {
+  return String(text || '').replace(/([a-zA-Z][a-zA-Z0-9+.-]*:\/\/)[^@\s/]+@/g, '$1***@').slice(0, 400);
+}
 const {
   analyzeSteps,
   summarize,
@@ -451,6 +445,26 @@ function getImageDimensions(buf) {
     if (buf.length >= 26 && buf[0] === 0x42 && buf[1] === 0x4D) {
       return { width: Math.abs(buf.readInt32LE(18)), height: Math.abs(buf.readInt32LE(22)) };
     }
+    // WebP (RIFF....WEBP — VP8 / VP8L / VP8X, aligned with PR #36)
+    if (buf.length >= 30 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') {
+      const chunk = buf.toString('ascii', 12, 16);
+      if (chunk === 'VP8X' && buf.length >= 30) {
+        const w = 1 + (buf[24] | (buf[25] << 8) | (buf[26] << 16));
+        const h = 1 + (buf[27] | (buf[28] << 8) | (buf[29] << 16));
+        return { width: w, height: h };
+      }
+      if (chunk === 'VP8L' && buf.length >= 25 && buf[20] === 0x2F) {
+        const b0 = buf[21], b1 = buf[22], b2 = buf[23], b3 = buf[24];
+        const w = 1 + (((b1 & 0x3F) << 8) | b0);
+        const h = 1 + (((b3 & 0x0F) << 10) | (b2 << 2) | ((b1 & 0xC0) >> 6));
+        return { width: w, height: h };
+      }
+      if (chunk === 'VP8 ' && buf.length >= 30 && buf[23] === 0x9D && buf[24] === 0x01 && buf[25] === 0x2A) {
+        const w = buf.readUInt16LE(26) & 0x3FFF;
+        const h = buf.readUInt16LE(28) & 0x3FFF;
+        return { width: w, height: h };
+      }
+    }
     if (buf.length >= 4 && buf[0] === 0xFF && buf[1] === 0xD8) {
       let offset = 2;
       while (offset < buf.length - 8) {
@@ -713,7 +727,15 @@ async function collect(origin, id, options = {}) {
       ...(cachedHostUserStatus?.availableModelDetails || {}),
       ...stepCapabilities
     };
-    const result = { version: PROJECT_VERSION, conversation: id, workspacePath: wsPath || null, latest, latestCallId, latestCallRecord, recentGeneratorCalls, generatorCount: count, cascadeModelConfigs: compactCascadeConfigs, modelCapabilitiesById, session: { ...session, media: undefined, attachmentTotal, total, attachments, unknownFiles, complete: unknownFiles === 0, scope: '全量可读取历史 + 上传附件 + 当前系统提示与工具定义；不将每轮重复输入累加；非服务端分词结果' }, scannedAt: Date.now(), errors: [] };
+    const contextBreakdown = readConversationContextBreakdown(id, { force: options.force === true });
+    const cacheHitStats = latest
+      ? calculateCacheHitStats(latest.uncachedInput ?? Math.max(0, (latest.input || 0) - (latest.cached || 0)), latest.cached || 0, latest.cacheWrite || 0)
+      : calculateCacheHitStats(0, 0, 0);
+    if (latest) {
+      latest.cacheHitRate = cacheHitStats.hitRate;
+      latest.cacheHitTier = cacheHitStats.tier;
+    }
+    const result = { version: PROJECT_VERSION, conversation: id, workspacePath: wsPath || null, latest, cacheHitStats, contextBreakdown, latestCallId, latestCallRecord, recentGeneratorCalls, generatorCount: count, cascadeModelConfigs: compactCascadeConfigs, modelCapabilitiesById, session: { ...session, media: undefined, attachmentTotal, total, attachments, unknownFiles, complete: unknownFiles === 0, scope: '全量可读取历史 + 上传附件 + 当前系统提示与工具定义；不将每轮重复输入累加；非服务端分词结果' }, scannedAt: Date.now(), errors: [] };
     if (isSuperseded()) {
       conversations.delete(key);
       return { version: PROJECT_VERSION, conversation: id, abortedStale: true, scannedAt: Date.now(), errors: [] };
@@ -4988,11 +5010,14 @@ async function collectTokenHistoryCoreAsync(options = {}, extraContext = {}) {
     ...(Array.isArray(options.extraAgDirs) ? options.extraAgDirs : []),
     ...extraWsl.desktopDirs
   ]);
-  const cliAgDirs = dedupeScanPaths([
-    agCliDir,
-    ...(Array.isArray(options.extraAgCliDirs) ? options.extraAgCliDirs : []),
-    ...extraWsl.cliDirs
-  ]);
+  // Desktop-only personal suite: skip Antigravity CLI (~/.gemini/antigravity-cli) scanning unless explicitly passed
+  const cliAgDirs = options.includeCli === true
+    ? dedupeScanPaths([
+        agCliDir,
+        ...(Array.isArray(options.extraAgCliDirs) ? options.extraAgCliDirs : []),
+        ...extraWsl.cliDirs
+      ])
+    : [];
 
   let desktopPbCount = 0;
   let cliPbCount = 0;
@@ -7669,18 +7694,16 @@ const LIVE_RUNTIME_FILES = [
   'meter-renderer.js',
   'meter-collector.js',
   'meter-storage.js',
-  'meter-proxy.js',
-  'meter-cli-launcher.js',
-  'meter-context-unlock.js',
-  'meter-enhance.js',
-  'meter-accounts.js',
-  'macos-binary-utils.js',
+  'meter-i18n-host.js',
+  'meter-commands.js',
+  'meter-context-breakdown.js',
+  'meter-keeper.js',
   'attachment_scan.py',
   'asar-engine.js',
   'modules-config.js',
   'modular-installer.js',
-  'i18n/zh-CN.json',
-  'i18n/i18n-runtime.js'
+  'i18n/zh-CN.v233.json',
+  'i18n/zh-CN.supplement.json'
 ];
 
 function getLiveRuntimeDir(customStateDir = null) {
@@ -8180,34 +8203,10 @@ module.exports = {
   getPluginSettings,
   savePluginSettings,
   sanitizeContextPreferenceEntry,
-  resolveCliExecutable,
-  resolveCliWorkspace,
-  buildCliProxyEnv,
-  launchCliSession,
+  conversationWorkspaces,
   SUBSCRIPTION_ACQUISITION_PRESETS,
-  checkUpdateAsync,
-  applyUpdateAsync,
   LIVE_RUNTIME_FILES,
   getLiveRuntimeDir,
   syncLiveRuntimeBundle,
-  parseReleasesAtom,
-  parseLatestReleaseHtml,
-  parseExpandedAssetsHtml,
-  requestGithubUrl,
-  isAllowedDownloadRedirectUrl,
-  isOfficialAssetDownloadUrl,
-  OFFICIAL_RELEASES_API,
-  OFFICIAL_RELEASES_ATOM,
-  OFFICIAL_RELEASES_LATEST,
-  OFFICIAL_RELEASES_WEB_BASE,
-  resolveNodeRuntime,
-  OFFICIAL_REPO,
-  openHttpConnectTunnel,
-  openSocks5Tunnel,
-  getContextUnlockStatus,
-  applyContextUnlock,
-  applyContextUnlockAsync,
-  restoreContextUnlock,
-  restoreContextUnlockAsync,
-  CONTEXT_UNLOCK_AUTHOR
+  resolveNodeRuntime
 };

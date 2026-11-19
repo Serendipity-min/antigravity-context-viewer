@@ -48,11 +48,11 @@
   <span id="token-hover-extra" class="sr-only"></span>
 </button>
 
-<!-- 顶部基本单元 4: 一键启动 CLI 模式 -->
-<button id="badge-cli" class="ag-unit" type="button" aria-label="启动 CLI" data-i18n-aria="badge.cli.aria"
-  title="一键启动 Antigravity CLI 终端（自动进入当前项目目录）" data-i18n-title="badge.cli.title">
-  <span class="cli-icon" aria-hidden="true">&gt;_</span>
-  <span id="cli-label">CLI</span>
+<!-- 顶部基本单元 4: / 指令与技能中心 -->
+<button id="badge-commands" class="ag-unit ag-unit-cmd" type="button" aria-label="/ 指令与技能中心"
+  title="/ 指令速查与 E:\agent_skills 技能中心（点击展开，支持搜索、原生挂载与一键填入）" aria-expanded="false">
+  <span class="cmd-icon" aria-hidden="true">/</span>
+  <span id="cmd-label">指令</span>
 </button>
 
 <!-- 顶部基本单元 5: 窄屏溢出菜单按钮 -->
@@ -64,9 +64,6 @@
     <circle cx="12.5" cy="8" r="1.25"></circle>
   </svg>
 </button>
-
-<!-- CLI 启动反馈提示气泡 -->
-<div id="cli-launch-toast" hidden role="status" aria-live="polite"></div>
 
 <!-- 上下文圆环悬停/聚焦信息气泡（参考图三层结构） -->
 <div id="context-tooltip" role="tooltip" data-visible="false" data-placement="bottom">
@@ -90,10 +87,9 @@
         用量一览</span></span>
     <span id="overflow-tokens-val" class="overflow-item-val">--</span>
   </button>
-  <button id="overflow-cli-btn" class="overflow-item" type="button">
-    <span class="overflow-item-label"><span class="cli-icon">&gt;_</span><span data-i18n="overflow.cli">启动 CLI
-        终端</span></span>
-    <span id="overflow-cli-val" class="overflow-item-val">agy</span>
+  <button id="overflow-commands-btn" class="overflow-item" type="button">
+    <span class="overflow-item-label"><span class="cmd-icon">/</span><span>指令与技能中心</span></span>
+    <span class="overflow-item-val">Hub</span>
   </button>
 </div>
 
@@ -117,22 +113,13 @@
         <button id="btn-top-lang-en" class="ctx-seg-btn" type="button" data-panel-lang="en" title="English"
           aria-label="English">EN</button>
       </div>
-      <button id="btn-github-repo-ctx" class="panel-icon-btn" type="button" aria-label="打开 GitHub 仓库"
+      <button id="btn-github-repo-ctx" class="panel-icon-btn" type="button" aria-label="打开 GitHub Fork 仓库"
         data-i18n-aria="header.github.aria" title="打开 GitHub 仓库" data-i18n-title="header.github.aria">
         <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
           <path
             d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
           </path>
         </svg>
-      </button>
-      <button id="btn-check-update-ctx" class="panel-icon-btn update-btn" type="button" aria-label="检查插件更新"
-        data-i18n-aria="header.update.aria" title="检查插件更新" data-i18n-title="header.update.aria"
-        style="position:relative">
-        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 8A6 6 0 1 1 8 2M14 2v6h-6"></path>
-        </svg>
-        <span id="update-badge-dot-ctx" class="update-badge-dot" style="display:none"></span>
       </button>
       <button id="btn-panel-palette" class="panel-icon-btn" type="button" aria-label="外观与调色设置"
         data-i18n-aria="header.palette.aria" title="外观与调色设置" data-i18n-title="header.palette.aria">🎨</button>
@@ -145,12 +132,10 @@
   </div>
 
   <div id="view-context">
-    <!-- 顶部 4 分页标签栏 -->
+    <!-- 顶部 3 分页标签栏（精简去除上下文加长模型设置页） -->
     <div id="ctx-tabs-bar" class="ctx-tabs-bar" role="tablist" aria-label="上下文面板分页" data-i18n-aria="tabs.aria">
       <button id="tab-ctx-session" class="ctx-tab-btn active" type="button" role="tab" aria-selected="true"
         data-ctx-tab="session" data-i18n="tab.session">当前会话</button>
-      <button id="tab-ctx-models" class="ctx-tab-btn" type="button" role="tab" aria-selected="false"
-        data-ctx-tab="models" data-i18n="tab.models">模型设置</button>
       <button id="tab-ctx-speed" class="ctx-tab-btn" type="button" role="tab" aria-selected="false" data-ctx-tab="speed"
         data-i18n="tab.speed">速度对比</button>
       <button id="tab-ctx-settings" class="ctx-tab-btn" type="button" role="tab" aria-selected="false"
@@ -279,19 +264,33 @@
         </div>
       </div>
 
-      <!-- 紧凑上下文设置入口卡片 -->
-      <div id="ctx-compact-card" class="ctx-compact-card">
-        <div class="ctx-compact-info">
-          <div class="ctx-compact-title" data-i18n="session.compact.title">上下文设置</div>
-          <div class="ctx-compact-meta">
-            <span><span data-i18n="session.compact.savedLabel">本模型已保存：</span><strong
-                id="ctx-compact-saved" data-i18n="status.savedDefault">未单独设置（使用默认）</strong></span>
-            <span><span data-i18n="session.compact.clientLabel">客户端当前使用：</span><strong
-                id="ctx-compact-client" data-i18n="status.badge.reading">状态读取中…</strong></span>
-          </div>
+      <!-- KV 缓存命中率卡片 (PR #37 精确口径：cacheWrite 计入未命中输入) -->
+      <div id="kv-cache-card" class="kv-cache-card">
+        <div class="key-header" style="margin-bottom:4px">
+          <span class="key-title">🧊 KV 缓存命中率</span>
+          <span id="kv-cache-badge" class="key-pill pill-muted">待读取</span>
         </div>
-        <button id="btn-goto-model-settings" class="ctx-compact-link-btn" type="button"
-          data-i18n="session.compact.gotoModels">去模型设置 ›</button>
+        <div class="kv-cache-row">
+          <span id="kv-cache-rate" class="kv-cache-rate">—</span>
+          <span id="kv-cache-detail" class="kv-cache-detail">等待本轮模型返回缓存统计…</span>
+        </div>
+        <div id="kv-cache-drop-alert" class="kv-cache-drop-alert" hidden></div>
+      </div>
+
+      <!-- 上下文精细构成拆解卡片（直读本地会话 DB gen_metadata 权威分组） -->
+      <div id="ctx-breakdown-card" class="ctx-breakdown-card">
+        <div class="key-header" style="margin-bottom:5px">
+          <span class="key-title">🧩 上下文构成拆解</span>
+          <span id="ctx-breakdown-badge" class="key-pill pill-muted">读取中</span>
+        </div>
+        <div id="ctx-breakdown-bar" class="ctx-breakdown-bar" title="系统基础 / 规则·技能·MCP / 对话与工具">
+          <span id="ctx-bd-seg-sys" class="ctx-bd-seg seg-sys" style="width:0%"></span>
+          <span id="ctx-bd-seg-custom" class="ctx-bd-seg seg-custom" style="width:0%"></span>
+          <span id="ctx-bd-seg-chat" class="ctx-bd-seg seg-chat" style="width:0%"></span>
+        </div>
+        <div id="ctx-breakdown-legend" class="ctx-breakdown-legend"></div>
+        <div id="ctx-breakdown-list" class="ctx-breakdown-list"></div>
+        <div id="ctx-breakdown-files" class="ctx-breakdown-files" hidden></div>
       </div>
 
       <!-- 底层技术参数与附件审计 -->
@@ -800,284 +799,63 @@
         主动测试：未接通。目前没有可靠的指定模型调用入口，暂时只能使用日常对话的实测记录。</div>
     </div>
 
-    <!-- 设置与系统配置 (第四分页: 配置 / setting) -->
+    <!-- 设置与系统配置 (配置页：免重启实时汉化 + 503 自动重试 + 自愈守护 + 配色自定义) -->
     <div id="pane-ctx-settings" class="ctx-tab-pane" role="tabpanel" aria-labelledby="tab-ctx-settings" hidden>
-      <!-- 1. 一键推荐配置与总览（默认不自动应用，需用户预览勾选并确认） -->
-      <div class="ctx-settings-card" id="enhance-preset-card">
-        <div class="ctx-settings-card-hdr">
-          <div class="ctx-settings-card-title" data-i18n="enhance.preset.title">✨ 一键推荐配置（按需勾选预览）</div>
-          <span id="enhance-global-badge" class="key-pill pill-muted" data-i18n="settings.common.reading">读取中…</span>
-        </div>
-        <div class="ctx-settings-card-desc" data-i18n="enhance.preset.desc">正常安装默认保持客户端原样。下方列出推荐增强组合；只有你勾选并确认后才会实际写入。
-        </div>
-        <div class="ctx-preset-checklist">
-          <label class="ctx-preset-check-item">
-            <input id="chk-rec-prompt" type="checkbox" checked>
-            <div class="ctx-preset-check-meta">
-              <strong data-i18n="enhance.preset.itemPrompt">系统提示词 4 档（极简防幻觉）</strong>
-              <span data-i18n="enhance.preset.itemPromptSub">精简模板套话并保留真实工具契约；仅作用于系统提示，不能保证模型永不犯错。</span>
-            </div>
-          </label>
-          <label class="ctx-preset-check-item">
-            <input id="chk-rec-title" type="checkbox" checked>
-            <div class="ctx-preset-check-meta">
-              <strong data-i18n="enhance.preset.itemTitle">自动中文会话标题</strong>
-              <span data-i18n="enhance.preset.itemTitleSub">新会话自动生成简体中文标题（等长替换指令文本，不破坏结构）。</span>
-            </div>
-          </label>
-          <label class="ctx-preset-check-item">
-            <input id="chk-rec-lang" type="checkbox" checked>
-            <div class="ctx-preset-check-meta">
-              <strong data-i18n="enhance.preset.itemLang">客户端简体中文界面（Antigravity 本身）</strong>
-              <span data-i18n="enhance.preset.itemLangSub">仅改变桌面端壳层中文，不影响你选择的插件面板语言。</span>
-            </div>
-          </label>
-          <label class="ctx-preset-check-item">
-            <input id="chk-rec-ctx" type="checkbox" checked>
-            <div class="ctx-preset-check-meta">
-              <strong data-i18n="enhance.preset.itemCtx">上下文模式：跟随模型</strong>
-              <span data-i18n="enhance.preset.itemCtxSub">按模型各自支持的最大长度运行，不硬锁固定 983,040 或 512,000。</span>
-            </div>
-          </label>
-        </div>
-        <div class="ctx-settings-card-actions">
-          <button id="btn-enhance-preset-apply" class="unlock-btn unlock-btn-primary" type="button"
-            data-i18n="enhance.preset.applyBtn">应用所选推荐配置</button>
-          <button id="btn-enhance-restore-all" class="unlock-btn unlock-btn-danger" type="button"
-            data-i18n="enhance.restoreAll.btn">全部恢复官方默认</button>
-        </div>
-        <div id="enhance-preset-confirm" class="ctx-enhance-confirm" hidden>
-          <div id="enhance-preset-confirm-text"></div>
-          <div class="ctx-enhance-confirm-actions">
-            <button id="btn-enhance-confirm-cancel" class="unlock-btn unlock-btn-secondary" type="button"
-              data-i18n="models.restartConfirm.cancel">取消</button>
-            <button id="btn-enhance-confirm-go" class="unlock-btn unlock-btn-primary" type="button"
-              data-i18n="enhance.confirm.go">确认应用</button>
-          </div>
-        </div>
-        <div id="enhance-global-result" class="unlock-result-box" style="display:none;">
-          <div id="enhance-global-result-text" class="unlock-result-text"></div>
-          <div id="enhance-global-result-actions" class="unlock-result-actions" hidden>
-            <button id="btn-enhance-restart-ls" class="unlock-btn unlock-btn-secondary" type="button"
-              data-i18n="enhance.btn.restartLs">重启语言服务</button>
-            <button id="btn-enhance-restart-host" class="unlock-btn unlock-btn-primary" type="button"
-              data-i18n="models.restartBtn">重启客户端使设置生效</button>
-          </div>
-          <div id="enhance-global-manual-note" class="ctx-result-manual-note" hidden data-i18n="models.manualRestart">
-            请手动重启：关闭所有 Antigravity 窗口（包括托盘图标里的“退出”），再重新打开 Antigravity。</div>
-        </div>
-      </div>
-
-      <!-- 2. 客户端界面语言与品牌标题 (Antigravity 本身) -->
+      <!-- 1. 客户端界面汉化 (Antigravity v2.33.0+ · 免重启实时开关) -->
       <div class="ctx-settings-card" id="client-brand-lang-card">
         <div class="ctx-settings-card-hdr">
-          <div class="ctx-settings-card-title" data-i18n="settings.clientLang.title">🖥️ 客户端界面语言与品牌（Antigravity 本身）
-          </div>
-          <span id="chinese-badge" class="key-pill pill-muted" data-i18n="settings.common.reading">读取中…</span>
+          <div class="ctx-settings-card-title">🇨🇳 客户端界面汉化（Antigravity v2.33.0+）</div>
+          <span id="chinese-badge" class="key-pill pill-muted">读取中…</span>
         </div>
-        <div id="chinese-status-desc" class="ctx-settings-card-desc" data-i18n="settings.clientLang.detecting">
-          正在检测桌面端汉化运行状态…</div>
-        <div class="ctx-segmented ctx-lang-segmented" id="client-lang-segmented" role="group" aria-label="客户端界面语言"
-          data-i18n-aria="settings.clientLang.aria">
-          <button id="btn-client-lang-zh-CN" class="ctx-seg-btn" type="button" data-client-lang="zh-CN">简体中文</button>
-          <button id="btn-client-lang-en" class="ctx-seg-btn" type="button" data-client-lang="en">English</button>
+        <div id="chinese-status-desc" class="ctx-settings-card-desc">
+          基于 MIT 开源 v2.33.0+ 全量词典（4,264+ 词条）与叶节点可逆翻译，支持随时免重启实时切换中/英文，并自动保护聊天正文与代码块不被误译。
         </div>
-        <div class="ctx-small-label" style="margin-top:8px" data-i18n="enhance.brand.label">左上角品牌文字显示（仅作用于左上角品牌位，不影响
-          Logo、菜单或代码）：</div>
-        <div class="ctx-segmented ctx-lang-segmented" id="brand-title-segmented" role="group" aria-label="品牌名称选项"
-          data-i18n-aria="enhance.brand.aria">
-          <button id="btn-brand-english" class="ctx-seg-btn active" type="button" data-brand-title="english"
-            data-i18n="enhance.brand.english">Antigravity</button>
-          <button id="btn-brand-hidden" class="ctx-seg-btn" type="button" data-brand-title="hidden"
-            data-i18n="enhance.brand.hidden">隐藏</button>
-          <button id="btn-brand-translated" class="ctx-seg-btn" type="button" data-brand-title="translated"
-            data-i18n="enhance.brand.translated">反重力</button>
+        <div class="ctx-segmented ctx-lang-segmented" id="client-lang-segmented" role="group" aria-label="客户端界面语言">
+          <button id="btn-client-lang-zh-CN" class="ctx-seg-btn" type="button" data-client-lang="zh-CN">简体中文（开启）</button>
+          <button id="btn-client-lang-en" class="ctx-seg-btn" type="button" data-client-lang="en">English（原文）</button>
         </div>
-        <div id="brand-apply-feedback" class="ctx-brand-feedback" style="display:none;"></div>
-        <div id="client-lang-license-note" class="ctx-client-lang-note" data-i18n="settings.clientLang.licenseNote">
-          说明：此设置控制 Antigravity 客户端本身，与顶部插件面板语言相互独立。切换客户端语言需重新安装/重启客户端后生效。</div>
-        <div class="ctx-settings-card-actions">
-          <button id="btn-toggle-chinese-module" class="unlock-btn unlock-btn-primary" type="button"
-            data-i18n="settings.clientLang.toggle">切换汉化状态</button>
-          <button id="btn-apply-brand-title" class="unlock-btn unlock-btn-secondary" type="button"
-            data-i18n="enhance.brand.applyBtn">保存品牌选择并应用</button>
+        <div id="client-lang-live-feedback" class="ctx-client-lang-note" style="margin-top:6px">
+          提示：点击上方选项后立即实时生效，无需重启 Antigravity，且会自动记住你的偏好。
         </div>
       </div>
 
-      <!-- 3. 回答与工具使用规则 (原防幻觉档位) 与自动中文标题 -->
-      <div class="ctx-settings-card" id="enhance-prompt-card">
+      <!-- 2. 503 限流瞬时错误自动重试 -->
+      <div class="ctx-settings-card" id="auto-retry-card">
         <div class="ctx-settings-card-hdr">
-          <div class="ctx-settings-card-title" data-i18n="enhance.prompt.title">🧠 回答与工具使用规则</div>
-          <span id="enhance-prompt-badge" class="key-pill pill-muted" data-i18n="settings.common.reading">读取中…</span>
+          <div class="ctx-settings-card-title">🔄 503 / 服务端瞬时限流自动重试</div>
+          <span id="auto-retry-badge" class="key-pill pill-muted">已关闭</span>
         </div>
-        <!-- 第一层：默认可见的白话说明 -->
-        <div class="ctx-plain-help"
-          style="margin:4px 0 8px 0;background:var(--ag-bg-subcard);border:1px solid var(--ag-border-subcard);border-radius:6px;padding:8px 10px;">
-          <div style="font-size:11.5px;line-height:1.55;color:var(--ag-text-primary);"
-            data-i18n="enhance.prompt.plainIntro">
-            调整客户端给 AI 的工作说明，让它更重视证据：没读过的文件不猜，没运行的测试不说通过。它不会升级模型底层能力，也不能保证回答永远正确。
-          </div>
-          <div id="enhance-tier-current-desc"
-            style="font-size:11px;line-height:1.5;color:var(--ag-text-secondary);margin-top:4px;">
-            当前档位说明加载中…
-          </div>
+        <div id="auto-retry-status-desc" class="ctx-settings-card-desc">
+          开启后，遇到 503 / No capacity available 等服务端瞬时错误时将自动退避重试，避免频繁手动点击 Retry。
         </div>
-        <div class="ctx-enhance-status-grid">
-          <div class="ctx-enhance-stat">
-            <div class="ctx-enhance-stat-lbl" data-i18n="enhance.stat.prompt">当前检测档位</div>
-            <div id="enhance-stat-prompt" class="ctx-enhance-stat-val">—</div>
-          </div>
-          <div class="ctx-enhance-stat">
-            <div class="ctx-enhance-stat-lbl" data-i18n="enhance.stat.title">自动中文标题</div>
-            <div id="enhance-stat-title" class="ctx-enhance-stat-val">—</div>
-          </div>
-          <div class="ctx-enhance-stat">
-            <div class="ctx-enhance-stat-lbl" data-i18n="enhance.stat.evidence">证据检测状态</div>
-            <div id="enhance-stat-slots" class="ctx-enhance-stat-val">—</div>
-          </div>
-          <div class="ctx-enhance-stat">
-            <div class="ctx-enhance-stat-lbl" data-i18n="enhance.stat.backup">原版内核备份</div>
-            <div id="enhance-stat-backup" class="ctx-enhance-stat-val">—</div>
-          </div>
-        </div>
-        <div id="enhance-tier-grid" class="ctx-tier-grid" role="group" aria-label="规则档位"
-          data-i18n-aria="enhance.prompt.aria">
-          <button id="enhance-tier-0" class="ctx-tier-btn" type="button" data-enhance-tier="0">
-            <span class="ctx-tier-num">0</span>
-            <span class="ctx-tier-name" data-i18n="enhance.tier.0.short">原版</span>
-          </button>
-          <button id="enhance-tier-1" class="ctx-tier-btn" type="button" data-enhance-tier="1">
-            <span class="ctx-tier-num">1</span>
-            <span class="ctx-tier-name" data-i18n="enhance.tier.1.short">基础</span>
-          </button>
-          <button id="enhance-tier-2" class="ctx-tier-btn" type="button" data-enhance-tier="2">
-            <span class="ctx-tier-num">2</span>
-            <span class="ctx-tier-name" data-i18n="enhance.tier.2.short">精简</span>
-          </button>
-          <button id="enhance-tier-3" class="ctx-tier-btn" type="button" data-enhance-tier="3">
-            <span class="ctx-tier-num">3</span>
-            <span class="ctx-tier-name" data-i18n="enhance.tier.3.short">深度</span>
-          </button>
-          <button id="enhance-tier-4" class="ctx-tier-btn" type="button" data-enhance-tier="4">
-            <span class="ctx-tier-num">4</span>
-            <span class="ctx-tier-name" data-i18n="enhance.tier.4.short">极简</span>
-          </button>
-        </div>
-        <div id="enhance-tier-matrix" class="ctx-tier-matrix">
-          <div id="enhance-tier-matrix-title" class="ctx-tier-matrix-title">—</div>
-          <div class="ctx-tier-matrix-row">
-            <span class="ctx-tier-matrix-k" data-i18n="enhance.matrix.keeps">保留</span>
-            <span id="enhance-tier-keeps" class="ctx-tier-matrix-v">—</span>
-          </div>
-          <div class="ctx-tier-matrix-row">
-            <span class="ctx-tier-matrix-k" data-i18n="enhance.matrix.clears">清空</span>
-            <span id="enhance-tier-clears" class="ctx-tier-matrix-v">—</span>
-          </div>
-          <div class="ctx-tier-matrix-row">
-            <span class="ctx-tier-matrix-k" data-i18n="enhance.matrix.replaces">替换</span>
-            <span id="enhance-tier-replaces" class="ctx-tier-matrix-v">—</span>
-          </div>
-          <div class="ctx-tier-matrix-row">
-            <span class="ctx-tier-matrix-k" data-i18n="enhance.matrix.meaning">对你的影响</span>
-            <span id="enhance-tier-meaning" class="ctx-tier-matrix-v">—</span>
-          </div>
-        </div>
-        <div id="enhance-hallucination-note" class="ctx-tier-note-warn" data-i18n="enhance.hallucinationNote">
-          说明：规则档位通过精简冗余指引并强化真实工具核对来规范行为。高档位删减提示模板中的工作指引，不等于删除用户文件或工件本身；是否影响具体能力需在对话中实际验证。</div>
-        <label class="ctx-toggle-row">
-          <div class="ctx-toggle-row-text">
-            <span class="ctx-toggle-row-title" data-i18n="enhance.titlePatch.label">自动生成简体中文会话标题</span>
-            <span class="ctx-toggle-row-sub" data-i18n="enhance.titlePatch.sub">等长替换会话命名提示词，不破坏原有长度对齐；支持随时改回官方英文。</span>
-          </div>
-          <input id="chk-enhance-chinese-title" type="checkbox">
-        </label>
-        <div class="ctx-settings-card-actions">
-          <button id="btn-enhance-apply-prompt" class="unlock-btn unlock-btn-primary" type="button"
-            data-i18n="enhance.btn.applyPrompt">应用提示词与标题设置</button>
-          <button id="btn-enhance-refresh" class="unlock-btn unlock-btn-secondary" type="button"
-            data-i18n="models.btn.refreshStatus">刷新状态</button>
-        </div>
-        <div id="enhance-prompt-result" class="unlock-result-box" style="display:none;">
-          <div id="enhance-prompt-result-text" class="unlock-result-text"></div>
-        </div>
-
-        <!-- 第二层：可展开的“详细说明” -->
-        <div class="tech-drawer" id="enhance-details-drawer" style="margin-top:4px">
-          <button id="btn-toggle-enhance-details" class="drawer-trigger" aria-expanded="false" type="button">
-            <span class="drawer-trigger-left" data-i18n="enhance.details.toggle">详细说明：来源范围、三层状态与检测依据</span>
-            <span id="enhance-details-arrow" class="drawer-arrow" data-i18n="drawer.expand">▼ 展开</span>
-          </button>
-          <div id="enhance-details-body" class="drawer-body" style="display:none;">
-            <div class="unlock-panel-content">
-              <div class="unlock-notice">
-                <div class="unlock-desc" data-i18n="enhance.details.body">方案来源：PR #4 (Jia131313) 与 PR #3 (anyu0804 /
-                  Linux.do @23375)，由本项目进行本地适配、工具契约安全核对与多语言整合。<br><br>
-                  <strong>修改目标程序</strong>：仅修改本地桌面端语言服务核心程序内嵌模板表；不改动任何云端模型，亦不影响 CLI 以外的外部环境。<br><br>
-                  <strong>三层状态区别</strong>：<br>
-                  1. <strong>写入状态</strong>：检测目标程序磁盘文件已覆写指定槽位（安全空格对齐填充，零结构偏移）。<br>
-                  2. <strong>服务加载状态</strong>：需完全退出并重启客户端后，由新启动的语言服务进程加载读取。<br>
-                  3. <strong>行为效果验证</strong>：提示词仅是 AI 的工作指南，不能保证永不犯错；实际表现需由用户在真实会话中体验，不宣称数学上的绝对消除。
-                </div>
-              </div>
-              <div id="enhance-binary-list" class="unlock-desc" style="margin-top:6px;"></div>
-              <div class="unlock-credit-row">
-                <span class="unlock-credit-lbl"
-                  data-i18n="enhance.details.credit">恢复操作：点击上方“全部恢复官方默认”将无损还原官方备份模板。</span>
-              </div>
-            </div>
-          </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px">
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ag-text-primary);cursor:pointer">
+            <input id="chk-auto-retry-503" type="checkbox">
+            <span>启用自动退避重试</span>
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--ag-text-secondary)">
+            <span>最大重试</span>
+            <select id="sel-auto-retry-max" style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--ag-bg-subcard);border:1px solid var(--ag-border-subcard);color:var(--ag-text-primary)">
+              <option value="1">1 次</option>
+              <option value="2" selected>2 次</option>
+              <option value="3">3 次</option>
+            </select>
+          </label>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- 保留：兼容隐藏旧中文折叠触发节点以防测试脚本寻找该 ID -->
-  <div id="chinese-i18n-drawer" hidden>
-    <button id="btn-toggle-chinese" type="button" hidden></button>
-    <div id="chinese-drawer-body" style="display:none;"><span id="chinese-drawer-arrow"></span></div>
-  </div>
-
-  <!-- 5. 免 TUN 网络直连 (AntigravityProxyNoTun) -->
-  <div class="tech-drawer" id="proxy-notun-drawer">
-    <button id="btn-toggle-proxy" class="drawer-trigger" aria-expanded="false" type="button">
-      <span class="drawer-trigger-left">
-        <span data-i18n="settings.proxy.title">🌐 免 TUN 网络直连（本地代理）</span>
-        <span id="proxy-badge" class="key-pill pill-muted" style="margin-left:6px;font-size:10.5px;"
-          data-i18n="settings.common.reading">读取中…</span>
-      </span>
-      <span id="proxy-drawer-arrow" class="drawer-arrow" data-i18n="drawer.expand">▼ 展开</span>
-    </button>
-    <div id="proxy-drawer-body" class="drawer-body" style="display:none;">
-      <div class="unlock-panel-content">
-        <div class="unlock-status-row">
-          <div class="unlock-status-meta">
-            <div class="unlock-label" data-i18n="settings.proxy.statusLabel">代理直连配置与状态</div>
-            <div id="proxy-status-desc" class="unlock-desc" data-i18n="settings.proxy.checking">正在核对代理设置…</div>
-          </div>
+      <!-- 3. 更新后自愈守护 (Headless Sidecar Keeper) -->
+      <div class="ctx-settings-card" id="keeper-card">
+        <div class="ctx-settings-card-hdr">
+          <div class="ctx-settings-card-title">🛡️ 更新后自动自愈守护（Sidecar Keeper）</div>
+          <span id="keeper-badge" class="key-pill pill-muted">检测中…</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin:8px 0;">
-          <label style="font-size:11px;color:var(--ag-text-secondary);display:flex;flex-direction:column;gap:4px;">
-            <span data-i18n="settings.proxy.urlLabel">本地代理地址 (例如 http://127.0.0.1:7897 或 socks5://...)：</span>
-            <input id="input-proxy-url" type="text" class="unlock-input"
-              style="padding:4px 8px;font-size:11px;background:var(--ag-bg-subcard);border:1px solid var(--ag-border-subcard);color:var(--ag-text-primary);border-radius:4px;"
-              value="http://127.0.0.1:7897" />
-          </label>
-          <label style="font-size:11px;color:var(--ag-text-secondary);display:flex;flex-direction:column;gap:4px;">
-            <span data-i18n="settings.proxy.bypassLabel">绕过代理列表 (NO_PROXY)：</span>
-            <input id="input-proxy-bypass" type="text" class="unlock-input"
-              style="padding:4px 8px;font-size:11px;background:var(--ag-bg-subcard);border:1px solid var(--ag-border-subcard);color:var(--ag-text-primary);border-radius:4px;"
-              value="localhost,127.0.0.1,::1,<local>" />
-          </label>
+        <div id="keeper-status-desc" class="ctx-settings-card-desc">
+          通过 Antigravity 官方无界面 Sidecar 机制（不弹出任何多余窗口），在每次客户端自动更新后自动检测并静默重装本套件。
         </div>
-        <div class="unlock-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button id="btn-test-proxy" class="unlock-btn unlock-btn-secondary" type="button"
-            data-i18n="settings.proxy.testBtn">🔍 测试代理连通性</button>
-          <button id="btn-save-proxy-config" class="unlock-btn unlock-btn-secondary" type="button" hidden
-            data-i18n="mod.proxy.btnSave">保存代理设置</button>
-          <button id="btn-toggle-proxy-module" class="unlock-btn unlock-btn-primary" type="button"
-            data-i18n="mod.proxy.btnEnable">开启免 TUN 直连</button>
-        </div>
-        <div id="proxy-test-result" style="font-size:11px;margin-top:6px;display:none;color:var(--ag-text-secondary);">
+        <div class="ctx-settings-card-actions" style="margin-top:6px">
+          <button id="btn-toggle-keeper" class="unlock-btn unlock-btn-primary" type="button">安装 / 启用守护</button>
+          <button id="btn-refresh-keeper" class="unlock-btn unlock-btn-secondary" type="button">刷新状态</button>
         </div>
       </div>
     </div>
@@ -1221,15 +999,6 @@
           </path>
         </svg>
       </button>
-      <button id="btn-check-update" class="panel-icon-btn update-btn" type="button" aria-label="检查插件更新"
-        data-i18n-aria="header.update.aria" title="检查插件更新" data-i18n-title="header.update.aria"
-        style="position:relative">
-        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 8A6 6 0 1 1 8 2M14 2v6h-6"></path>
-        </svg>
-        <span id="update-badge-dot" class="update-badge-dot" style="display:none"></span>
-      </button>
       <button id="btn-panel-tokens-palette" class="panel-icon-btn" type="button" aria-label="外观与调色设置"
         data-i18n-aria="header.palette.aria" title="外观与调色设置" data-i18n-title="header.palette.aria">🎨</button>
       <button id="theme-toggle-tokens" class="panel-icon-btn" type="button" aria-label="切换浅色/深色主题"
@@ -1242,12 +1011,10 @@
 
   <div id="view-tokens">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
-      <div class="source-switch-bar">
-        <span style="font-size:10.5px;color:var(--ag-text-muted);padding:0 4px"
-          data-i18n="tokens.sourceLabel">来源:</span>
-        <button id="src-tab-all" class="switch-pill-btn active" type="button" data-i18n="tokens.src.all">全部</button>
-        <button id="src-tab-desktop" class="switch-pill-btn" type="button" data-i18n="tokens.src.desktop">桌面端</button>
-        <button id="src-tab-cli" class="switch-pill-btn" type="button" data-i18n="tokens.src.cli">CLI</button>
+      <div class="source-switch-bar" style="padding:2px 6px">
+        <span style="font-size:10.5px;color:var(--ag-text-muted)">🖥️ 桌面端专属统计 (Desktop Only)</span>
+        <button id="src-tab-all" class="switch-pill-btn active" type="button" hidden>全部</button>
+        <button id="src-tab-desktop" class="switch-pill-btn" type="button" hidden>桌面端</button>
       </div>
       <div class="view-switch-bar">
         <button id="tok-view-tokens" class="switch-pill-btn active" type="button" data-i18n="tokens.view.tokens">Token
@@ -1257,8 +1024,8 @@
       </div>
     </div>
 
-    <!-- 分账号账本筛选条（ELV-89：严格隔离各账号及未归属历史，不重复堆叠刷新入口） -->
-    <div id="token-account-bar" class="token-account-bar">
+    <!-- 隐藏多账号账本筛选条（纯单机轻量模式） -->
+    <div id="token-account-bar" class="token-account-bar" hidden style="display:none">
       <span class="token-account-lbl" data-i18n="accounts.filterLabel">账本范围:</span>
       <select id="token-account-select" class="token-account-select" aria-label="按账号筛选统计账本" data-i18n-aria="accounts.filterAria" style="display:none">
         <option value="all" data-i18n="accounts.filterAll">全部已记用量（含未归属）</option>
@@ -2321,6 +2088,16 @@
       <button id="btn-quota-banner-restart" class="switch-pill-btn active" type="button" hidden data-i18n="quota.restartBtn">重启客户端</button>
     </div>
 
+    <!-- 5h / 周额度环展示模式切换（Issue #41） -->
+    <div id="quota-ring-mode-bar" class="quota-ring-mode-bar">
+      <span style="font-size:10.5px;color:var(--ag-text-muted)">底栏额度环优先展示：</span>
+      <div style="display:inline-flex;gap:4px">
+        <button type="button" class="switch-pill-btn active" data-quota-ring-mode="auto">自动</button>
+        <button type="button" class="switch-pill-btn" data-quota-ring-mode="5h">5h 额度</button>
+        <button type="button" class="switch-pill-btn" data-quota-ring-mode="weekly">周额度</button>
+      </div>
+    </div>
+
     <!-- 独立三时间分列展示（数据更新时间 / 下次自动刷新 / 当前额度重置） -->
     <div id="quota-times-grid" class="quota-times-grid">
       <div class="quota-time-cell">
@@ -2365,130 +2142,35 @@
       Token」按本机输入+缓存+输出原始 Token 统计，受服务端计费权重、同池模型混用、他端消耗及周期采样覆盖度影响；校准过期或样本不足时不按有效推算展示。</div>
     <div id="quota-usage-tip" class="quota-usage-tip" data-i18n="quota.usageTip">💡
       用量提示：使用前可先查看各池剩余额度，优先选择余量充足且适合当前任务的模型。</div>
+  </div>
+</section>
 
-    <!-- 统一多账号切换、自动切号、共享额度对照(ELV-57)与缓存保活保障(ELV-52) -->
-    <div id="quota-accounts-section" class="quota-accounts-section">
-      <div class="quota-subsec-header">
-        <span class="quota-subsec-title" data-i18n="accounts.panelTitle">👤 多账号切换与阈值自动切号</span>
-        <div class="quota-subsec-actions">
-          <button id="btn-acct-import-current" class="switch-pill-btn" type="button" data-i18n="accounts.importCurrent">导入当前</button>
-          <button id="btn-acct-import-tools" class="switch-pill-btn" type="button" hidden data-i18n="accounts.importTools">导入 Tools</button>
-          <button id="btn-acct-oauth-add" class="switch-pill-btn active" type="button" data-i18n="accounts.oauthAdd">+ 登录添加</button>
-        </div>
-      </div>
-      <div id="quota-acct-feedback" class="quota-acct-feedback" hidden></div>
-      <div id="quota-accounts-list" class="quota-accounts-list"></div>
-
-      <!-- 阈值自动切号配置 -->
-      <div class="quota-subcard">
-        <div class="quota-subcard-row">
-          <label class="quota-switch-lbl">
-            <input id="chk-auto-switch-enabled" type="checkbox" />
-            <span data-i18n="accounts.autoSwitchEnable">启用阈值自动切号（默认关闭）</span>
-          </label>
-          <span id="auto-switch-status-pill" class="key-pill pill-muted" data-i18n="accounts.status.disabled">已关闭</span>
-        </div>
-        <div id="auto-switch-config-body" class="auto-switch-grid">
-          <div class="quota-field-lbl"><span data-i18n="accounts.poolLabel">监控共享池</span>
-            <select id="sel-auto-switch-pool" class="quota-compact-select" aria-label="监控共享池" data-i18n-aria="accounts.poolLabel" style="display:none">
-              <option value="shared_gemini_main">Gemini 4 Hydrogen / 3.8 Flash</option>
-              <option value="shared_3p_pool">Claude 5.5 / GPT-OSS 120B</option>
-              <option value="shared_gemini_argon">Gemini 4 Argon / Orchestrator</option>
-              <option value="shared_gemini_carbon">Gemini 4 Carbon</option>
-            </select>
-            <div id="sel-auto-switch-pool-dropdown-wrap" class="ag-dropdown-wrapper ag-dropdown-compact">
-              <div id="sel-auto-switch-pool-dropdown-trigger" class="ag-dropdown-trigger" tabindex="0">
-                <span id="sel-auto-switch-pool-dropdown-label" class="ag-dropdown-label">Gemini 4 Hydrogen / 3.8 Flash</span>
-                <div class="ag-dropdown-arrow">
-                  <svg viewBox="0 0 10 6" width="10" height="6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4" /></svg>
-                </div>
-              </div>
-              <div id="sel-auto-switch-pool-dropdown-menu" class="ag-dropdown-menu"></div>
-            </div>
-          </div>
-          <div class="quota-field-lbl"><span data-i18n="accounts.metricLabel">判断口径</span>
-            <select id="sel-auto-switch-mode" class="quota-compact-select" aria-label="判断口径" data-i18n-aria="accounts.metricLabel" style="display:none">
-              <option value="remaining_pct" data-i18n="accounts.modeRemaining">按剩余额度 &lt;=</option>
-              <option value="used_pct" data-i18n="accounts.modeUsed">按累计已用 &gt;=</option>
-            </select>
-            <div id="sel-auto-switch-mode-dropdown-wrap" class="ag-dropdown-wrapper ag-dropdown-compact">
-              <div id="sel-auto-switch-mode-dropdown-trigger" class="ag-dropdown-trigger" tabindex="0">
-                <span id="sel-auto-switch-mode-dropdown-label" class="ag-dropdown-label" data-i18n="accounts.modeRemaining">按剩余额度 &lt;=</span>
-                <div class="ag-dropdown-arrow">
-                  <svg viewBox="0 0 10 6" width="10" height="6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4" /></svg>
-                </div>
-              </div>
-              <div id="sel-auto-switch-mode-dropdown-menu" class="ag-dropdown-menu"></div>
-            </div>
-          </div>
-          <div class="quota-field-lbl"><span data-i18n="accounts.windowLabel">限额窗口</span>
-            <select id="sel-auto-switch-window" class="quota-compact-select" aria-label="限额窗口" data-i18n-aria="accounts.windowLabel" style="display:none">
-              <option value="primary" data-i18n="accounts.winPrimary">主窗口（最紧缩）</option>
-              <option value="5h">5h</option>
-              <option value="7d">7d</option>
-            </select>
-            <div id="sel-auto-switch-window-dropdown-wrap" class="ag-dropdown-wrapper ag-dropdown-compact">
-              <div id="sel-auto-switch-window-dropdown-trigger" class="ag-dropdown-trigger" tabindex="0">
-                <span id="sel-auto-switch-window-dropdown-label" class="ag-dropdown-label" data-i18n="accounts.winPrimary">主窗口（最紧缩）</span>
-                <div class="ag-dropdown-arrow">
-                  <svg viewBox="0 0 10 6" width="10" height="6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4" /></svg>
-                </div>
-              </div>
-              <div id="sel-auto-switch-window-dropdown-menu" class="ag-dropdown-menu"></div>
-            </div>
-          </div>
-          <label class="quota-field-lbl"><span data-i18n="accounts.thresholdLabel">阈值 (%)</span>
-            <input id="inp-auto-switch-threshold" class="quota-compact-input" type="number" min="1" max="95" value="10" />
-          </label>
-          <div class="auto-switch-candidates-wrap">
-            <div class="quota-field-k" data-i18n="accounts.candidatesLabel">允许切入的候选账号：</div>
-            <div id="auto-switch-candidates-list" class="auto-switch-candidates-list"></div>
-          </div>
-          <div class="auto-switch-save-row">
-            <button id="btn-save-auto-switch" class="switch-pill-btn active" type="button" data-i18n="accounts.saveRule">保存切号规则</button>
-            <span id="auto-switch-last-note" class="quota-muted-note"></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 本机消耗与共享账号额度变化对照 -->
-      <div class="quota-subsec-header" style="margin-top:10px">
-        <span class="quota-subsec-title" data-i18n="quota.compareTitle">📊 本机消耗与共享账号额度对照</span>
-      </div>
-      <div id="quota-compare-note" class="quota-muted-note" style="margin-bottom:5px" data-i18n="quota.compareDisclaimer">
-        按同一账号与共享池统计。账面百分点下降受多设备使用、取整、重置与滚动恢复影响，不等同于本机单独消耗占比。
-      </div>
-      <div id="quota-compare-list" class="quota-compare-list"></div>
-
-      <!-- 模型 Prompt Cache 保活协议与保障 -->
-      <div class="quota-subsec-header" style="margin-top:10px">
-        <span class="quota-subsec-title" data-i18n="keepalive.title">🧊 模型缓存保活状态与协议核查</span>
-        <span id="keepalive-status-pill" class="key-pill pill-muted" data-i18n="accounts.keepaliveOff">默认关闭</span>
-      </div>
-      <div class="quota-subcard">
-        <div id="keepalive-protocol-summary" class="quota-muted-note"></div>
-        <div id="keepalive-experiment-summary" class="quota-muted-note" style="margin-top:4px"></div>
-        <div class="quota-subcard-row" style="margin-top:6px">
-          <span id="keepalive-runtime-note" class="quota-muted-note"></span>
-          <button id="btn-keepalive-stop" class="switch-pill-btn" type="button" hidden data-i18n="keepalive.stopBtn">立即停止保活</button>
-        </div>
-      </div>
+<!-- 弹出式面板 4: / 指令与 E:\agent_skills 技能中心 (#panel-commands, 480px) -->
+<section id="panel-commands" class="ag-panel ag-panel-flex" hidden aria-label="/ 指令与技能中心">
+  <div class="panel-header-bar">
+    <div class="panel-title">
+      <span class="panel-title-text" style="font-size:13px;font-weight:600;color:var(--ag-text-primary)">⌘ / 指令与技能中心</span>
+    </div>
+    <div class="panel-header-actions">
+      <button id="btn-refresh-commands" class="panel-icon-btn" type="button" aria-label="重新扫描本地指令与技能" title="重新扫描本地指令与 E:\agent_skills">↻</button>
+      <button id="close-commands" class="panel-icon-btn" type="button" aria-label="收起指令面板">×</button>
     </div>
   </div>
 
-  <!-- 移除账号二次确认模态弹窗（移除插件凭证与切号候选，保留历史本地用量与归属） -->
-  <div id="account-remove-modal" class="ag-modal-overlay" hidden role="dialog" aria-modal="true"
-    aria-labelledby="modal-account-remove-title">
-    <div class="ag-modal-card">
-      <div id="modal-account-remove-title" class="ag-modal-title" data-i18n="accounts.removeModal.title">移除账号</div>
-      <div id="modal-account-remove-text" class="ag-modal-body"></div>
-      <div id="modal-account-remove-feedback" class="ag-modal-feedback" hidden></div>
-      <div class="ag-modal-actions">
-        <button id="btn-modal-account-remove-cancel" class="unlock-btn unlock-btn-secondary" type="button"
-          data-i18n="accounts.removeModal.cancel">取消</button>
-        <button id="btn-modal-account-remove-confirm" class="unlock-btn unlock-btn-danger" type="button"
-          data-i18n="accounts.removeModal.confirm">确认移除</button>
-      </div>
+  <div id="view-commands" class="cmd-hub-body">
+    <div id="cmd-hub-stats" class="cmd-hub-stats">正在加载本地指令与技能库…</div>
+    <div class="cmd-search-wrap">
+      <input id="cmd-hub-search" class="cmd-search-input" type="search" placeholder="搜索 /compact、context7、archify、graphify、压缩、论文…" autocomplete="off" />
     </div>
+    <div id="cmd-hub-tabs" class="cmd-hub-tabs" role="tablist">
+      <button type="button" class="cmd-tab-btn active" data-cmd-tab="favorites">⭐ 常用</button>
+      <button type="button" class="cmd-tab-btn" data-cmd-tab="all">全部</button>
+      <button type="button" class="cmd-tab-btn" data-cmd-tab="builtin">官方 /</button>
+      <button type="button" class="cmd-tab-btn" data-cmd-tab="installed">插件与全局</button>
+      <button type="button" class="cmd-tab-btn" data-cmd-tab="agent_skills">agent_skills</button>
+    </div>
+    <div id="cmd-subcat-bar" class="cmd-subcat-bar" hidden></div>
+    <div id="cmd-hub-toast" class="cmd-hub-toast" hidden role="status" aria-live="polite"></div>
+    <div id="cmd-hub-list" class="cmd-hub-list"></div>
   </div>
 </section>

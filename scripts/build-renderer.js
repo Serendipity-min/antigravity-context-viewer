@@ -70,6 +70,9 @@ function buildRenderer(options = {}) {
   const budgetEngine = readVerifiedRendererSource(effSrcDir, 'context-budget-engine.js').trim();
   const dropdown = readVerifiedRendererSource(effSrcDir, 'dropdown.js').trim();
   const heatmap = readVerifiedRendererSource(effSrcDir, 'heatmap.js').trim();
+  const hostI18n = readVerifiedRendererSource(effSrcDir, 'host-i18n.js').trim();
+  const commandsHub = readVerifiedRendererSource(effSrcDir, 'commands.js').trim();
+  const autoRetry = readVerifiedRendererSource(effSrcDir, 'auto-retry.js').trim();
   let mainTemplate = readVerifiedRendererSource(effSrcDir, 'main.js');
 
   // 注入或同步构建期版本常量
@@ -93,7 +96,10 @@ function buildRenderer(options = {}) {
     .replace('  /* @INSERT_BUDGET_ENGINE_MODULE */', () => budgetEngine)
     .replace('  /* @INSERT_COLORS_MODULE */', () => colors)
     .replace('  /* @INSERT_DROPDOWN_MODULE */', () => dropdown)
-    .replace('  /* @INSERT_HEATMAP_MODULE */', () => heatmap);
+    .replace('  /* @INSERT_HEATMAP_MODULE */', () => heatmap)
+    .replace('  /* @INSERT_HOST_I18N_MODULE */', () => hostI18n)
+    .replace('  /* @INSERT_COMMANDS_MODULE */', () => commandsHub)
+    .replace('  /* @INSERT_AUTO_RETRY_MODULE */', () => autoRetry);
 
   fs.writeFileSync(effTargetFile, output, 'utf8');
   console.log(`[构建成功] 渲染层构建完成: ${effTargetFile} (v${meterVersion}, ${Buffer.byteLength(output, 'utf8')} 字节)`);
