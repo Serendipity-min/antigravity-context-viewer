@@ -38,6 +38,7 @@ function getKeeperStatePath(options = {}) {
 function buildKeeperScript(repoDir) {
   const safeRepoDir = JSON.stringify(path.resolve(repoDir));
   return `'use strict';
+process.noAsar = true;
 // Antigravity Context Suite — Headless Update-Resilient Sidecar Keeper
 // Runs once on Antigravity launch (restart_policy: "never"), checks if our patch was wiped by an app update,
 // and silently re-applies it so the suite survives Antigravity auto-updates.
@@ -114,7 +115,7 @@ async function run() {
 
   if (alreadyPatched) {
     log(\`Patch intact on Antigravity v\${hostPkg.version}; exiting.\`);
-    writeStatus({ lastResult: 'intact', hostVersion: hostPkg.version, asarPath });
+    writeStatus({ lastResult: 'intact', hostVersion: hostPkg.version, asarPath, lastError: null });
     return;
   }
 
@@ -127,10 +128,11 @@ async function run() {
       lastResult: 'repatched',
       hostVersion: hostPkg.version,
       asarPath,
+      lastError: null,
       lastRepatchedAt: new Date().toISOString()
     });
   } catch (err) {
-    log('Auto-repatch failed: ' + (err?.message || String(err)));
+    log('Auto-repatch failed: ' + (err?.stack || err?.message || String(err)));
     writeStatus({
       lastResult: 'failed',
       hostVersion: hostPkg.version,

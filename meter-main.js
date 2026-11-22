@@ -568,8 +568,11 @@ function getActiveHubWindowOrigins() {
     }
   } catch { }
   try {
-    const { BrowserWindow } = require('electron');
-    const allWins = typeof BrowserWindow?.getAllWindows === 'function' ? BrowserWindow.getAllWindows() : [];
+    const { BrowserWindow, BaseWindow } = require('electron');
+    const allWins = [
+      ...(typeof BaseWindow?.getAllWindows === 'function' ? BaseWindow.getAllWindows() : []),
+      ...(typeof BrowserWindow?.getAllWindows === 'function' ? BrowserWindow.getAllWindows() : [])
+    ];
     for (const win of allWins) {
       const wc = getWindowWebContents(win);
       if (wc && !wc.isDestroyed?.()) pushUrl(wc.getURL?.());

@@ -12,12 +12,13 @@ const os = require('os');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
-const { loadAsarEngine, builtinAsar, collectUnpackedPaths, getStateDir, getAppDataDir, isIsolatedTestPath, findAsarPath } = require('./asar-engine');
+const { loadAsarEngine, builtinAsar, collectUnpackedPaths, getRawFs, getStateDir, getAppDataDir, isIsolatedTestPath, findAsarPath } = require('./asar-engine');
 const { discoverAntigravityCdp, createCdpClient } = require('./local-api');
 const { loadModulesConfig, saveModulesConfig, acquireFileLock, getHostCoreBuildId } = require('./modules-config');
 const {
   TAGS,
   validateSyntax,
+  findWindowLoadAnchor,
   generateProxyUtilsCode,
   generateMeterUtilsCode,
   generateMeterPreloadCode,
@@ -27,7 +28,10 @@ const {
   verifyCleanStructure
 } = require('./modular-installer');
 
-const asar = loadAsarEngine();
+const rawFs = getRawFs();
+const asar = (typeof process !== 'undefined' && process.versions && process.versions.electron)
+  ? builtinAsar
+  : loadAsarEngine();
 const sha = buffer => crypto.createHash('sha256').update(buffer).digest('hex');
 
 function clearAsarCache(archivePath) {
@@ -338,7 +342,7 @@ async function install(options = {}) {
     // 1. 若用户显式传入了 --backup 参数，严格校验其对应关系，不合规立即明确报错，绝不静默回退
     if (explicitBackup !== undefined && explicitBackup !== null) {
       const resolvedBackup = path.resolve(String(explicitBackup).trim());
-      if (!fs.existsSync(resolvedBackup) || !fs.statSync(resolvedBackup).isFile()) {
+      if (!rawFs.existsSync(resolvedBackup) || !rawFs.statSync(resolvedBackup).isFile()) {
         throw new Error(`指定的 --backup 文件不存在或无效: ${resolvedBackup}`);
       }
       let bHostVer = null;
@@ -424,9 +428,9 @@ async function install(options = {}) {
           if (previousManifest) {
             const isSameTarget = Boolean(previousManifest.installed && path.resolve(previousManifest.installed) === path.resolve(installed));
             if (isSameTarget) {
-              if (previousManifest.backup && fs.existsSync(previousManifest.backup) && sha(fs.readFileSync(previousManifest.backup)) === previousManifest.originalSha256) {
+              if (previousManifest.backup && rawFs.existsSync(previousManifest.backup) && sha(rawFs.readFileSync(previousManifest.backup)) === previousManifest.originalSha256) {
                 matchedBackup = previousManifest.backup;
-              } else if (previousManifest.previousInstalledBackup && fs.existsSync(previousManifest.previousInstalledBackup) && sha(fs.readFileSync(previousManifest.previousInstalledBackup)) === previousManifest.previousInstalledSha256) {
+              } else if (previousManifest.previousInstalledBackup && rawFs.existsSync(previousManifest.previousInstalledBackup) && sha(rawFs.readFileSync(previousManifest.previousInstalledBackup)) === previousManifest.previousInstalledSha256) {
                 matchedBackup = previousManifest.previousInstalledBackup;
               }
               if (matchedBackup) {
@@ -492,9 +496,9 @@ async function install(options = {}) {
     fs.mkdirSync(snapshotDir, { recursive: true });
 
     // 4. 改写前保存带有时间戳与当前实际哈希的唯一快照，用于写入失败紧急恢复
-    const currentInstalledSha = sha(fs.readFileSync(installed));
+    const currentInstalledSha = sha(rawFs.readFileSync(installed));
     const snapshotFile = path.join(snapshotDir, `app-${version}-preinstall-${stamp}-${currentInstalledSha.slice(0, 8)}.asar`);
-    fs.copyFileSync(installed, snapshotFile);
+    rawFs.copyFileSync(installed, snapshotFile);
 
     // 5. 建立长期官方原版备份（基于当前目标路径与宿主版本严格物理隔离，若旧备份已损坏则从安全基线重建）
     const targetKey = crypto.createHash('sha256').update(path.resolve(installed)).digest('hex').slice(0, 8);
@@ -502,7 +506,7 @@ async function install(options = {}) {
 
     const isReadableAsar = (filePath) => {
       try {
-        if (!filePath || !fs.existsSync(filePath)) return false;
+        if (!filePath || !rawFs.existsSync(filePath)) return false;
         const pkgBuf = extractAsarFile(filePath, 'package.json');
         const pkg = JSON.parse(pkgBuf.toString('utf8'));
         return Boolean(pkg && pkg.name);
@@ -513,9 +517,9 @@ async function install(options = {}) {
 
     if (!isReadableAsar(backup)) {
       if (sourceArchive !== installed && isReadableAsar(sourceArchive)) {
-        fs.copyFileSync(sourceArchive, backup);
+        rawFs.copyFileSync(sourceArchive, backup);
       } else if (!extractAsarFile(sourceArchive, 'dist/utils.js').toString('utf8').includes('installContextMeter')) {
-        fs.copyFileSync(sourceArchive, backup);
+        rawFs.copyFileSync(sourceArchive, backup);
       }
     }
 
@@ -545,9 +549,13 @@ async function install(options = {}) {
       // 模块 B: Context Meter (Desktop 个性化套件：上下文监控 + /指令中心 + 免重启汉化 + 自愈守护)
       if (modulesConfig.modules.meter.enabled) {
         const meterUtils = generateMeterUtilsCode();
+        const loadAnchor = findWindowLoadAnchor(finalUtils);
+        if (!loadAnchor) {
+          throw new Error('未在 dist/utils.js 中定位到窗口加载锚点 (win.loadURL / loadHubWindowUrl)，中止写入以保护宿主环境。');
+        }
         finalUtils = finalUtils
           .replace("titleBarStyle: 'hidden',", `titleBarStyle: 'hidden',${meterUtils.menuBarOption}`)
-          .replace('    void win.loadURL(url);', `${meterUtils.windowLoadHook}    void win.loadURL(url);`);
+          .replace(loadAnchor, `${meterUtils.windowLoadHook}${loadAnchor}`);
 
         const createWinSig = 'function createWindow(url, storageManager, options) {';
         if (finalUtils.includes(createWinSig) && !finalUtils.includes('__agDefaultStorageManager')) {
@@ -682,15 +690,15 @@ async function install(options = {}) {
       }
 
       const isSameTargetManifest = Boolean(previousManifest?.installed && path.resolve(previousManifest.installed) === path.resolve(installed));
-      const previousInstalledBackup = (isSameTargetManifest && previousManifest?.previousInstalledBackup && fs.existsSync(previousManifest.previousInstalledBackup))
+      const previousInstalledBackup = (isSameTargetManifest && previousManifest?.previousInstalledBackup && rawFs.existsSync(previousManifest.previousInstalledBackup))
         ? previousManifest.previousInstalledBackup
         : path.join(backupDir, `pre-meter-${version}-${targetKey}.asar`);
 
       if (isReadableAsar(backup) && !isReadableAsar(previousInstalledBackup)) {
-        try { fs.copyFileSync(backup, previousInstalledBackup); } catch { }
+        try { rawFs.copyFileSync(backup, previousInstalledBackup); } catch { }
       }
-      const previousInstalledSha256 = isReadableAsar(previousInstalledBackup) ? sha(fs.readFileSync(previousInstalledBackup)) : null;
-      const origSha = isReadableAsar(backup) ? sha(fs.readFileSync(backup)) : (previousInstalledSha256 || previousManifest?.originalSha256);
+      const previousInstalledSha256 = isReadableAsar(previousInstalledBackup) ? sha(rawFs.readFileSync(previousInstalledBackup)) : null;
+      const origSha = isReadableAsar(backup) ? sha(rawFs.readFileSync(backup)) : (previousInstalledSha256 || previousManifest?.originalSha256);
 
       const manifest = {
         meterVersion: pkgVersion,
@@ -702,7 +710,7 @@ async function install(options = {}) {
         previousInstalledBackup,
         previousInstalledSha256,
         originalSha256: origSha,
-        patchedSha256: sha(fs.readFileSync(packed)),
+        patchedSha256: sha(rawFs.readFileSync(packed)),
         originalFilesVerified: verified,
         added: additions.map(f => 'dist/' + f),
         modified: ['dist/utils.js', 'dist/preload.js'],
@@ -715,14 +723,14 @@ async function install(options = {}) {
 
       try {
         // 9. 临时文件写入与校验
-        fs.copyFileSync(packed, tempReplacement);
-        if (sha(fs.readFileSync(tempReplacement)) !== manifest.patchedSha256) {
+        rawFs.copyFileSync(packed, tempReplacement);
+        if (sha(rawFs.readFileSync(tempReplacement)) !== manifest.patchedSha256) {
           throw new Error('Packed temporary file checksum mismatch; aborting before touching target.');
         }
 
         // 10. 安全原子替换目标文件
         try {
-          fs.copyFileSync(tempReplacement, installed);
+          rawFs.copyFileSync(tempReplacement, installed);
           clearAsarCache(installed);
         } catch (err) {
           if (err.code === 'EBUSY' || err.code === 'EPERM') {
@@ -730,10 +738,10 @@ async function install(options = {}) {
           }
           throw err;
         } finally {
-          try { if (fs.existsSync(tempReplacement)) fs.unlinkSync(tempReplacement); } catch { }
+          try { if (rawFs.existsSync(tempReplacement)) rawFs.unlinkSync(tempReplacement); } catch { }
         }
 
-        if (sha(fs.readFileSync(installed)) !== manifest.patchedSha256) {
+        if (sha(rawFs.readFileSync(installed)) !== manifest.patchedSha256) {
           throw new Error('Installed checksum mismatch');
         }
 
@@ -779,9 +787,9 @@ async function install(options = {}) {
         return { ...manifest, keeperResult, liveInjected: hotInjectReport.ok, hotInjectReport };
       } catch (err) {
         // 失败回滚机制：若在改写目标后发生任何校验或保存异常，立即从快照无损回滚还原
-        if (!installCommitted && fs.existsSync(snapshotFile)) {
+        if (!installCommitted && rawFs.existsSync(snapshotFile)) {
           try {
-            fs.copyFileSync(snapshotFile, installed);
+            rawFs.copyFileSync(snapshotFile, installed);
             clearAsarCache(installed);
             console.error(`[Failure-Rollback] 安装过程异常中断，已自动从改写前快照还原目标文件: ${installed}`);
           } catch (rollbackErr) {
@@ -792,7 +800,7 @@ async function install(options = {}) {
       }
     } finally {
       try { fs.rmSync(staging, { recursive: true, force: true }); } catch { }
-      try { fs.rmSync(packed, { force: true }); } catch { }
+      try { rawFs.rmSync(packed, { force: true }); } catch { }
       try { fs.rmSync(packed + '.unpacked', { recursive: true, force: true }); } catch { }
     }
   } finally {

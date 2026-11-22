@@ -243,4 +243,22 @@ describe('Personal Suite Backend Modules', () => {
       assert.ok(bundle.includes('measureComposerLeftIntrinsicWidth'), 'Expected flex-grow-safe composer width measurement');
     });
   });
+
+  describe('Antigravity v2.34.0+ Window Load Anchor & Keeper ASAR Safety', () => {
+    it('supports both legacy win.loadURL and v2.34.0+ loadHubWindowUrl anchors', () => {
+      const { findWindowLoadAnchor, verifyCleanStructure } = require('./modular-installer');
+      const v233 = 'function setupNodeWrapper(env) {}\nfunction createWindow(url) {\n    void win.loadURL(url);\n    return win;\n}\n';
+      const v234 = 'function setupNodeWrapper(env) {}\nfunction createWindow(url, storageManager, options) {\n    const skipBootstrapMint = Boolean(options?.partition);\n    void loadHubWindowUrl(win, url, { skipBootstrapMint });\n    return win;\n}\n';
+      assert.equal(findWindowLoadAnchor(v233), '    void win.loadURL(url);');
+      assert.equal(findWindowLoadAnchor(v234), '    void loadHubWindowUrl(win, url, { skipBootstrapMint });');
+      assert.equal(verifyCleanStructure(v233), true);
+      assert.equal(verifyCleanStructure(v234), true);
+    });
+
+    it('emits process.noAsar = true in generated sidecar keeper script', () => {
+      const { buildKeeperScript } = require('./meter-keeper');
+      const script = buildKeeperScript('E:\\Antigravity\\antigravity-context-viewer');
+      assert.match(script, /^'use strict';\r?\nprocess\.noAsar = true;/);
+    });
+  });
 });

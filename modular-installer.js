@@ -429,21 +429,42 @@ function cleanPreloadSource(source) {
 }
 
 /**
+ * 定位 dist/utils.js 中 createWindow 末尾加载主页面 URL 的锚点行。
+ * 兼容 Antigravity <= v2.33.0 (`    void win.loadURL(url);`) 与 >= v2.34.0 (`    void loadHubWindowUrl(win, url, { skipBootstrapMint });`)。
+ */
+function findWindowLoadAnchor(utilsSource) {
+  if (!utilsSource || typeof utilsSource !== 'string') return null;
+  const exactCandidates = [
+    '    void win.loadURL(url);',
+    '    void loadHubWindowUrl(win, url, { skipBootstrapMint });'
+  ];
+  for (const cand of exactCandidates) {
+    if (utilsSource.split(cand).length === 2) return cand;
+  }
+  const regexMatches = utilsSource.match(/^    void loadHubWindowUrl\(win,\s*url\b[^\r\n]*\);/gm);
+  if (regexMatches && regexMatches.length === 1) {
+    return regexMatches[0];
+  }
+  return null;
+}
+
+/**
  * 校验清洗后的 utils 结构合法性与 JavaScript 语法
  */
 function verifyCleanStructure(cleanUtils) {
   if (!cleanUtils) return false;
   if (cleanUtils.includes('installContextMeter')) return false;
   if (cleanUtils.includes(TAGS.PROXY_START) || cleanUtils.includes(TAGS.METER_UTILS_START)) return false;
-  const marker = '    void win.loadURL(url);';
+  const anchor = findWindowLoadAnchor(cleanUtils);
   const setupNodeMarker = 'function setupNodeWrapper(env) {';
-  const structuralOk = cleanUtils.split(marker).length === 2 && cleanUtils.includes(setupNodeMarker);
+  const structuralOk = Boolean(anchor) && cleanUtils.includes(setupNodeMarker);
   return structuralOk && validateSyntax(cleanUtils, 'dist/utils.js');
 }
 
 module.exports = {
   TAGS,
   validateSyntax,
+  findWindowLoadAnchor,
   generateProxyUtilsCode,
   generateMeterUtilsCode,
   generateMainWorldDecoratorScript,

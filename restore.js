@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
-const { getStateDir, getAppDataDir, isIsolatedTestPath, builtinAsar, collectUnpackedPaths, loadAsarEngine } = require('./asar-engine');
+const { getStateDir, getAppDataDir, isIsolatedTestPath, builtinAsar, collectUnpackedPaths, getRawFs, loadAsarEngine } = require('./asar-engine');
 const { discoverAntigravityCdp, createCdpClient } = require('./local-api');
 const { acquireFileLock } = require('./modules-config');
 const {
@@ -16,8 +16,11 @@ const {
   verifyCleanStructure
 } = require('./modular-installer');
 
-const asar = loadAsarEngine();
-const sha = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const rawFs = getRawFs();
+const asar = (typeof process !== 'undefined' && process.versions && process.versions.electron)
+  ? builtinAsar
+  : loadAsarEngine();
+const sha = file => crypto.createHash('sha256').update(rawFs.readFileSync(file)).digest('hex');
 
 function clearAsarCache(archivePath) {
   try {
