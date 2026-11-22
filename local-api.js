@@ -94,6 +94,7 @@ function getCandidateCdpPorts(options = {}) {
 
 function request(url, body, token, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
+    const payloadStr = body ? JSON.stringify(body) : undefined;
     const req = (url.startsWith('https:') ? https : http).request(
       url,
       {
@@ -104,7 +105,8 @@ function request(url, body, token, timeoutMs = 20000) {
           ? {
               'Content-Type': 'application/json',
               'Connect-Protocol-Version': '1',
-              'x-codeium-csrf-token': token
+              'x-codeium-csrf-token': token,
+              'Content-Length': Buffer.byteLength(payloadStr)
             }
           : {}
       },
@@ -120,7 +122,7 @@ function request(url, body, token, timeoutMs = 20000) {
     );
     req.setTimeout(timeoutMs, () => req.destroy(new Error('Local API timeout')));
     req.on('error', reject);
-    req.end(body ? JSON.stringify(body) : undefined);
+    req.end(payloadStr);
   });
 }
 
@@ -556,6 +558,55 @@ async function extractAppConfigViaCdp(page) {
 }
 
 /**
+ * 在 Antigravity v2.34.0+ Electron 主进程内直读宿主 authBootstrap / languageServer
+ * 持有的活跃 Language Server 原点与 CSRF Token。
+ * 兼容启用了 AGY_REQUIRE_AUTHENTICATED_UI_BOOTSTRAP=1 后无鉴权 GET / 不再返回 csrfToken 的场景。
+ */
+function resolveMainProcessHostAuth(preferredOrigin = null, options = {}) {
+  const provider = typeof options?.authBootstrapProvider === 'function'
+    ? options.authBootstrapProvider
+    : () => {
+        try { return require('./authBootstrap'); } catch {}
+        try { return require('./languageServer'); } catch {}
+        return null;
+      };
+  try {
+    const mod = provider();
+    if (!mod || typeof mod !== 'object') return null;
+    const rawToken = typeof mod.getActiveLsCsrfToken === 'function'
+      ? mod.getActiveLsCsrfToken()
+      : (typeof mod.getLsCsrfToken === 'function' ? mod.getLsCsrfToken() : '');
+    const token = typeof rawToken === 'string' ? rawToken.trim() : '';
+    if (!token) return null;
+
+    const rawBaseUrl = typeof mod.getActiveLsBaseUrl === 'function'
+      ? mod.getActiveLsBaseUrl()
+      : (typeof mod.getLsBaseUrl === 'function' ? mod.getLsBaseUrl() : '');
+    const rawPort = typeof mod.getActiveLsPort === 'function'
+      ? Number(mod.getActiveLsPort())
+      : (typeof mod.getLsPort === 'function' ? Number(mod.getLsPort()) : 0);
+
+    const activeOrigin = normalizeLoopbackOrigin(rawBaseUrl)
+      || (Number.isInteger(rawPort) && rawPort > 0 && rawPort <= 65535 ? `https://127.0.0.1:${rawPort}` : null);
+    const requestedOrigin = preferredOrigin ? normalizeLoopbackOrigin(preferredOrigin) : null;
+
+    // 防止跨端口/跨实例串用 Token：若显式传入了不同 origin，绝不复用本地活跃 LS Token
+    if (requestedOrigin && activeOrigin && requestedOrigin !== activeOrigin) {
+      return null;
+    }
+    const resolvedOrigin = requestedOrigin || activeOrigin;
+    if (!resolvedOrigin) return null;
+    return {
+      origin: resolvedOrigin,
+      token,
+      source: 'auth-bootstrap'
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 解析并缓存或实时提取指定本地页面原点的 CSRF Token 并构造 RPC 客户端。
  */
 async function connectOrigin(rawOrigin, page = null, origins = null, extraMeta = {}) {
@@ -565,15 +616,31 @@ async function connectOrigin(rawOrigin, page = null, origins = null, extraMeta =
   }
   let hasConfig = false;
   let token = null;
-  try {
-    const html = await request(origin + '/');
-    const config = html.match(/window\.__APP_CONFIG__\s*=\s*(\{.*?\})\s*;/s);
-    if (config) {
+
+  if (typeof extraMeta?.csrfToken === 'string' && extraMeta.csrfToken.trim()) {
+    hasConfig = true;
+    token = extraMeta.csrfToken.trim();
+  }
+
+  if (!token) {
+    const hostAuth = resolveMainProcessHostAuth(origin, extraMeta);
+    if (hostAuth && hostAuth.token) {
       hasConfig = true;
-      token = JSON.parse(config[1]).csrfToken;
+      token = hostAuth.token;
     }
-  } catch (err) {
-    if (!page || !page.webSocketDebuggerUrl) throw err;
+  }
+
+  if (!token) {
+    try {
+      const html = await request(origin + '/');
+      const config = html.match(/window\.__APP_CONFIG__\s*=\s*(\{.*?\})\s*;/s);
+      if (config) {
+        hasConfig = true;
+        token = JSON.parse(config[1]).csrfToken;
+      }
+    } catch (err) {
+      if (!page || !page.webSocketDebuggerUrl) throw err;
+    }
   }
 
   if (!hasConfig && page && page.webSocketDebuggerUrl) {
@@ -597,41 +664,61 @@ async function connectOrigin(rawOrigin, page = null, origins = null, extraMeta =
     ...(extraMeta.port ? { port: extraMeta.port } : {}),
     ...(Array.isArray(extraMeta.pages) ? { pages: extraMeta.pages } : {}),
     origins: Array.isArray(origins) && origins.length ? origins : [origin],
-    call: async (method, body) =>
-      JSON.parse(
-        await request(`${origin}/exa.language_server_pb.LanguageServerService/${method}`, body, token)
-      )
+    call: async (method, body) => {
+      try {
+        return JSON.parse(
+          await request(`${origin}/exa.language_server_pb.LanguageServerService/${method}`, body, token)
+        );
+      } catch (err) {
+        if (err && /HTTP 40[13]\b/.test(String(err.message || ''))) {
+          const refreshed = resolveMainProcessHostAuth(origin, extraMeta);
+          if (refreshed && refreshed.token && refreshed.token !== token) {
+            token = refreshed.token;
+            return JSON.parse(
+              await request(`${origin}/exa.language_server_pb.LanguageServerService/${method}`, body, token)
+            );
+          }
+        }
+        throw err;
+      }
+    }
   };
 }
 
 /**
  * 连接到本地 Antigravity LanguageServerService。
- * 支持直接传入已知 `options.origin` 免 CDP/DevToolsActivePort 直连，亦可通过 CDP 发现所有运行窗口原点。
+ * 支持直接传入已知 `options.origin` 免 CDP/DevToolsActivePort 直连，亦支持在 v2.34.0+ 主进程
+ * 通过宿主 authBootstrap 直连活跃 LS，并保留 CDP 发现回退路径。
  */
 async function connect(options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
   if (
-    options &&
-    options.origin !== undefined &&
-    options.origin !== null &&
-    String(options.origin).trim() !== ''
+    opts.origin !== undefined &&
+    opts.origin !== null &&
+    String(opts.origin).trim() !== ''
   ) {
-    const explicitOrigin = normalizeLoopbackOrigin(options.origin);
+    const explicitOrigin = normalizeLoopbackOrigin(opts.origin);
     if (!explicitOrigin) {
       throw new Error('非法的本机回环页面地址');
     }
-    return connectOrigin(explicitOrigin, null, [explicitOrigin]);
+    return connectOrigin(explicitOrigin, null, [explicitOrigin], opts);
   }
-  const { port, page, pages } = await discoverAntigravityCdp(options);
+  const hostAuth = resolveMainProcessHostAuth(null, opts);
+  if (hostAuth && hostAuth.origin && hostAuth.token) {
+    return connectOrigin(hostAuth.origin, null, [hostAuth.origin], { ...opts, csrfToken: hostAuth.token });
+  }
+  const { port, page, pages } = await discoverAntigravityCdp(opts);
   const origins = Array.from(
     new Set((Array.isArray(pages) ? pages : [page]).map(item => normalizeLoopbackOrigin(item?.url)).filter(Boolean))
   );
   const targetOrigin = normalizeLoopbackOrigin(page.url);
-  return connectOrigin(targetOrigin, page, origins, { port, pages });
+  return connectOrigin(targetOrigin, page, origins, { ...opts, port, pages });
 }
 
 module.exports = {
   connect,
   connectOrigin,
+  resolveMainProcessHostAuth,
   normalizeLoopbackOrigin,
   parseExplicitPort,
   getAppDataDir,

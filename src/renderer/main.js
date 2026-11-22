@@ -12872,10 +12872,14 @@
     const controller = new AbortController(); state.controllers.add(controller);
     const timeout = setTimeout(() => controller.abort(), 12000);
     try {
-      const csrf = window.__APP_CONFIG__?.csrfToken; if (!csrf) throw new Error('后台尚未就绪');
+      const csrf = window.__APP_CONFIG__?.csrfToken || '';
+      const isLoopbackOrigin = /^https?:\/\/127\.0\.0\.1:\d+$/.test(String(window.location?.origin || ''));
+      if (!csrf && !isLoopbackOrigin) throw new Error('后台尚未就绪');
       const offset = Math.max(0, state.count - 3);
-      const response = await fetch('/exa.language_server_pb.LanguageServerService/GetCascadeTrajectoryGeneratorMetadata', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Connect-Protocol-Version': '1', 'x-codeium-csrf-token': csrf }, body: JSON.stringify({ cascadeId: id, generatorMetadataOffset: offset, includeMessages: false }), signal: controller.signal });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const reqHeaders = { 'Content-Type': 'application/json', 'Connect-Protocol-Version': '1' };
+      if (csrf) reqHeaders['x-codeium-csrf-token'] = csrf;
+      const response = await fetch('/exa.language_server_pb.LanguageServerService/GetCascadeTrajectoryGeneratorMetadata', { method: 'POST', credentials: 'same-origin', headers: reqHeaders, body: JSON.stringify({ cascadeId: id, generatorMetadataOffset: offset, includeMessages: false }), signal: controller.signal });
+      if (!response.ok) throw new Error((response.status === 401 || response.status === 403) && !csrf ? '后台尚未就绪' : `HTTP ${response.status}`);
       const data = await response.json(); if (generation !== state.generation || state.disposed) return;
       const rows = data.generatorMetadata || [];
       state.count = rows.length ? offset + rows.length : 0;
@@ -13110,16 +13114,20 @@
   async function fetchAvailableModelsIfNeeded() {
     if (availableModelsFetchInFlight) return;
     if (typeof fetch !== 'function') return;
-    const csrf = typeof window !== 'undefined' ? window.__APP_CONFIG__?.csrfToken : null;
-    if (!csrf) return;
+    const csrf = typeof window !== 'undefined' ? (window.__APP_CONFIG__?.csrfToken || '') : '';
+    const isLoopbackOrigin = typeof window !== 'undefined' && /^https?:\/\/127\.0\.0\.1:\d+$/.test(String(window.location?.origin || ''));
+    if (!csrf && !isLoopbackOrigin) return;
     if (Date.now() - lastAvailableModelsSync < 300000 && state.modelCapabilitiesById && Object.keys(state.modelCapabilitiesById).length > 0) {
       return;
     }
     availableModelsFetchInFlight = true;
     try {
+      const reqHeaders = { 'Content-Type': 'application/json', 'Connect-Protocol-Version': '1' };
+      if (csrf) reqHeaders['x-codeium-csrf-token'] = csrf;
       const response = await fetch('/exa.language_server_pb.LanguageServerService/GetAvailableModels', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Connect-Protocol-Version': '1', 'x-codeium-csrf-token': csrf },
+        credentials: 'same-origin',
+        headers: reqHeaders,
         body: JSON.stringify({ forceRefresh: false })
       });
       if (!response.ok) return;

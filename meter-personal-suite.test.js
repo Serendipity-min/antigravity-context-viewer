@@ -261,4 +261,99 @@ describe('Personal Suite Backend Modules', () => {
       assert.match(script, /^'use strict';\r?\nprocess\.noAsar = true;/);
     });
   });
+
+  describe('Antigravity v2.34.0+ Authenticated UI Bootstrap (authBootstrap) Quota Connection', () => {
+    it('connects via authBootstrap when GET / denies unauthenticated HTML scraping, enforces origin isolation, and retries on 401 rotation', async () => {
+      const http = require('http');
+      const { connect, resolveMainProcessHostAuth } = require('./local-api');
+      const { fetchQuotaSnapshotFromHost, resetQuotaHostCacheForTest } = require('./meter-collector');
+
+      let expectedToken = 'v234-token-initial';
+      let quotaCalls = 0;
+      const server = http.createServer((req, res) => {
+        if (req.url === '/') {
+          // Simulate AGY_REQUIRE_AUTHENTICATED_UI_BOOTSTRAP=1: unauthenticated GET / has no csrfToken
+          res.writeHead(401, { 'Content-Type': 'text/plain' });
+          res.end('Unauthorized');
+          return;
+        }
+        if (req.headers['x-codeium-csrf-token'] !== expectedToken) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ code: 'unauthenticated' }));
+          return;
+        }
+        quotaCalls++;
+        if (req.url.endsWith('/GetUserStatus')) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            userStatus: {
+              email: 'v234-test@example.com',
+              cascadeModelConfigData: {
+                clientModelConfigs: [
+                  {
+                    label: 'Gemini 4 Hydrogen',
+                    modelOrAlias: { model: 'MODEL_PLACEHOLDER_M525' },
+                    quotaInfo: { remainingFraction: 0.85, resetTime: new Date(Date.now() + 3600000).toISOString() }
+                  }
+                ]
+              }
+            }
+          }));
+          return;
+        }
+        if (req.url.endsWith('/RetrieveUserQuotaSummary')) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({}));
+          return;
+        }
+        res.writeHead(404);
+        res.end();
+      });
+
+      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      const port = server.address().port;
+      const origin = `http://127.0.0.1:${port}`;
+      let activeToken = expectedToken;
+      const authBootstrapProvider = () => ({
+        getActiveLsPort: () => port,
+        getActiveLsBaseUrl: () => origin,
+        getActiveLsCsrfToken: () => activeToken
+      });
+
+      try {
+        resetQuotaHostCacheForTest();
+
+        // 1. Cross-origin safety: different port must NOT receive local LS token
+        assert.equal(resolveMainProcessHostAuth(`http://127.0.0.1:${port + 1}`, { authBootstrapProvider }), null);
+        assert.deepEqual(resolveMainProcessHostAuth(origin, { authBootstrapProvider }), {
+          origin,
+          token: 'v234-token-initial',
+          source: 'auth-bootstrap'
+        });
+
+        // 2. Originless connect() works without CDP by reading authBootstrap directly
+        const apiDirect = await connect({ authBootstrapProvider });
+        assert.equal(apiDirect.origin, origin);
+
+        // 3. Full fetchQuotaSnapshotFromHost succeeds even though GET / returns HTTP 401
+        const quotaRes = await fetchQuotaSnapshotFromHost({
+          force: true,
+          origin,
+          connect: (opts) => connect({ ...(opts || {}), authBootstrapProvider })
+        });
+        assert.equal(quotaRes.ok, true);
+        assert.equal(quotaRes.snapshot.syncState, 'fresh');
+        assert.ok(quotaCalls >= 2);
+
+        // 4. Rotated CSRF token triggers automatic 401 refresh + single retry
+        expectedToken = 'v234-token-rotated';
+        activeToken = 'v234-token-rotated';
+        const rotatedRes = await apiDirect.call('GetUserStatus', {});
+        assert.equal(rotatedRes.userStatus.email, 'v234-test@example.com');
+      } finally {
+        resetQuotaHostCacheForTest();
+        await new Promise(resolve => server.close(resolve));
+      }
+    });
+  });
 });

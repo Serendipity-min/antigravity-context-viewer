@@ -21,7 +21,7 @@
     "uninstall-patch": "node cli.js restore",
     "build:renderer": "node scripts/build-renderer.js",
     "pretest": "node scripts/build-renderer.js",
-    "test": "node --test meter-personal-suite.test.js meter-core.test.js meter-subscription.test.js meter-elv91-speed.test.js meter-v089-usage.test.js",
+    "test": "node --test meter-personal-suite.test.js meter-quota.test.js meter-core.test.js meter-subscription.test.js meter-elv91-speed.test.js meter-v089-usage.test.js",
     "format": "npx prettier --write \"*.js\" \"*.json\" \"*.md\"",
     "format:check": "npx prettier --check \"*.js\" \"*.json\" \"*.md\"",
     "pack": "node scripts/package-release.js",

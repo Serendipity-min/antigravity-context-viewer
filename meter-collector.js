@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const http = require('http');
 const https = require('https');
-const { normalizeLoopbackOrigin } = require('./local-api');
+const { normalizeLoopbackOrigin, resolveMainProcessHostAuth } = require('./local-api');
 const { fileURLToPath } = require('url');
 const { spawn, spawnSync } = require('child_process');
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
@@ -371,11 +371,19 @@ function request(origin, method, body, token, signal = null) {
       return;
     }
     const transport = url.startsWith('https:') ? https : http;
+    const payloadStr = method ? JSON.stringify(body) : undefined;
     const req = transport.request(url, {
       agent: false,
       rejectUnauthorized: false,
       method: method ? 'POST' : 'GET',
-      headers: method ? { 'Content-Type': 'application/json', 'Connect-Protocol-Version': '1', 'x-codeium-csrf-token': token } : {},
+      headers: method
+        ? {
+            'Content-Type': 'application/json',
+            'Connect-Protocol-Version': '1',
+            'x-codeium-csrf-token': token,
+            'Content-Length': Buffer.byteLength(payloadStr)
+          }
+        : {},
       ...(signal ? { signal } : {})
     }, response => {
       const chunks = [];
@@ -402,7 +410,7 @@ function request(origin, method, body, token, signal = null) {
     });
     req.setTimeout(20000, () => req.destroy(new Error('本机接口读取超时')));
     req.on('error', reject);
-    req.end(method ? JSON.stringify(body) : undefined);
+    req.end(payloadStr);
   });
 }
 
@@ -610,22 +618,34 @@ async function collect(origin, id, options = {}) {
   const task = (async () => {
     const signal = abortController?.signal || null;
     try {
-      let token = !options.force ? csrfTokenByOrigin.get(origin) : null;
-      if (!token) {
+      const resolveScanToken = async (bypassCache = false) => {
+        if (!bypassCache) {
+          const cached = csrfTokenByOrigin.get(origin);
+          if (cached) return cached;
+        }
+        const hostAuth = resolveMainProcessHostAuth(origin);
+        if (hostAuth && hostAuth.token) {
+          csrfTokenByOrigin.set(origin, hostAuth.token);
+          return hostAuth.token;
+        }
         const html = await request(origin, null, null, null, signal);
-        if (isSuperseded()) return { version: PROJECT_VERSION, conversation: id, abortedStale: true, scannedAt: Date.now(), errors: [] };
-        token = JSON.parse(html.match(/window.__APP_CONFIG__ = (.*?);/)[1]).csrfToken;
-        csrfTokenByOrigin.set(origin, token);
-      }
+        if (isSuperseded()) return null;
+        const m = typeof html === 'string' ? html.match(/window\.__APP_CONFIG__\s*=\s*(\{.*?\})\s*;/s) : null;
+        const parsedToken = m ? JSON.parse(m[1]).csrfToken : null;
+        if (!parsedToken) throw new Error('Antigravity 本地鉴权信息尚未就绪，请稍后重试');
+        csrfTokenByOrigin.set(origin, parsedToken);
+        return parsedToken;
+      };
+      let token = await resolveScanToken(Boolean(options.force));
+      if (isSuperseded() || !token) return { version: PROJECT_VERSION, conversation: id, abortedStale: true, scannedAt: Date.now(), errors: [] };
       const call = async (method, body) => {
         try {
           return await request(origin, method, body, token, signal);
         } catch (err) {
-          if (err && /HTTP 40[13]/.test(String(err.message || '')) && !signal?.aborted) {
+          if (err && /HTTP 40[13]\b/.test(String(err.message || '')) && !signal?.aborted) {
             csrfTokenByOrigin.delete(origin);
-            const html = await request(origin, null, null, null, signal);
-            token = JSON.parse(html.match(/window.__APP_CONFIG__ = (.*?);/)[1]).csrfToken;
-            csrfTokenByOrigin.set(origin, token);
+            token = await resolveScanToken(true);
+            if (!token) throw err;
             return await request(origin, method, body, token, signal);
           }
           throw err;
